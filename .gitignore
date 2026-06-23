@@ -14,3 +14,5 @@ dist
 prisma/migrations/dev.db*
 .idea
 coverage
+
+.vercel
