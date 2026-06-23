@@ -1,0 +1,761 @@
+// =============================================================
+// Nova CRM — Prisma schema
+// PostgreSQL (Supabase). Run: pnpm db:push  &&  pnpm db:seed
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// -------------------------------------------------------------
+// Tenancy & Identity
+// -------------------------------------------------------------
+
+model Organization {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  industry     String?
+  country      String?
+  currency     String   @default("INR")
+  logoUrl      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users           User[]
+  territories     Territory[]
+  businessUnits   BusinessUnit[]
+  customers       Customer[]
+  leads           Lead[]
+  opportunities   Opportunity[]
+  rfqs            RFQ[]
+  quotations      Quotation[]
+  manpowerRates   ManpowerRateCard[]
+  nonManpowerRates NonManpowerRateCard[]
+  licenseRates    LicenseRateCard[]
+  approvalChains  ApprovalChain[]
+  notifications   Notification[]
+  activities      Activity[]
+  documents       Document[]
+}
+
+enum UserRole {
+  ADMIN
+  SALES_EXEC
+  SALES_MANAGER
+  BUSINESS_HEAD
+  FINANCE
+  REVENUE_OWNER
+  VIEWER
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  passwordHash  String?
+  name          String?
+  image         String?
+  mobile        String?
+  role          UserRole  @default(SALES_EXEC)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  territoryId    String?
+  territory      Territory? @relation(fields: [territoryId], references: [id])
+
+  businessUnitId String?
+  businessUnit   BusinessUnit? @relation(fields: [businessUnitId], references: [id])
+
+  accounts      Account[]
+  sessions      Session[]
+  otpTokens     OtpToken[]
+  ownedLeads        Lead[]         @relation("LeadOwner")
+  ownedOpportunities Opportunity[] @relation("OppOwner")
+  revenueOpportunities Opportunity[] @relation("OppRevenueOwner")
+  approvalsRequested ApprovalRequest[] @relation("RequestedBy")
+  approvalsApproved  ApprovalStep[]    @relation("ApproverUser")
+  activities       Activity[]
+  notifications    Notification[]
+  documents        Document[]
+
+  @@index([organizationId])
+  @@index([email])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Device session tracking
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model OtpToken {
+  id        String   @id @default(cuid())
+  userId    String?
+  identifier String  // email or mobile
+  channel   String  // EMAIL | SMS
+  code      String  // hashed
+  expires   DateTime
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([identifier])
+}
+
+// -------------------------------------------------------------
+// Org structure
+// -------------------------------------------------------------
+
+model Territory {
+  id             String  @id @default(cuid())
+  name           String
+  region         String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users          User[]
+  leads          Lead[]
+  opportunities  Opportunity[]
+
+  @@unique([organizationId, name])
+}
+
+model BusinessUnit {
+  id             String  @id @default(cuid())
+  name           String
+  code           String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users          User[]
+  opportunities  Opportunity[]
+
+  @@unique([organizationId, name])
+}
+
+// -------------------------------------------------------------
+// Customers
+// -------------------------------------------------------------
+
+model Customer {
+  id             String  @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name           String
+  industry       String?
+  billingAddress String?
+  shippingAddress String?
+  gstNumber      String?
+  country        String?
+  region         String?
+  website        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  contacts       Contact[]
+  leads          Lead[]
+  opportunities  Opportunity[]
+  rfqs           RFQ[]
+  quotations     Quotation[]
+
+  @@index([organizationId])
+}
+
+model Contact {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  name       String
+  designation String?
+  email      String?
+  mobile     String?
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+// -------------------------------------------------------------
+// Leads
+// -------------------------------------------------------------
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  UNQUALIFIED
+  CONVERTED
+  LOST
+}
+
+enum LeadSource {
+  WEBSITE
+  REFERRAL
+  COLD_CALL
+  EMAIL_CAMPAIGN
+  EVENT
+  PARTNER
+  SOCIAL
+  OTHER
+}
+
+model Lead {
+  id             String     @id @default(cuid())
+  leadNumber     String     @unique
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name           String
+  company        String
+  contactPerson  String?
+  email          String?
+  mobile         String?
+  source         LeadSource @default(WEBSITE)
+  industry       String?
+  notes          String?    @db.Text
+  status         LeadStatus @default(NEW)
+  expectedRevenue Decimal?   @db.Decimal(14, 2)
+
+  territoryId    String?
+  territory      Territory? @relation(fields: [territoryId], references: [id])
+
+  ownerId        String?
+  owner          User?      @relation("LeadOwner", fields: [ownerId], references: [id])
+
+  customerId     String?
+  customer       Customer?  @relation(fields: [customerId], references: [id])
+
+  convertedOpportunityId String?  @unique
+  convertedOpportunity   Opportunity? @relation("LeadToOpp", fields: [convertedOpportunityId], references: [id])
+
+  activities     Activity[]
+  documents      Document[]
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([organizationId, status])
+}
+
+// -------------------------------------------------------------
+// Opportunity & Pipeline
+// -------------------------------------------------------------
+
+enum OpportunityStage {
+  QUALIFICATION
+  DISCOVERY
+  REQUIREMENT_ANALYSIS
+  PROPOSAL_SUBMITTED
+  RFQ_RECEIVED
+  QUOTATION_SENT
+  NEGOTIATION
+  MANAGEMENT_APPROVAL
+  VERBAL_CONFIRMATION
+  WON
+  LOST
+}
+
+model Opportunity {
+  id               String   @id @default(cuid())
+  oppNumber        String   @unique
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name             String
+  customerId       String
+  customer         Customer @relation(fields: [customerId], references: [id])
+
+  ownerId          String?
+  owner            User?    @relation("OppOwner", fields: [ownerId], references: [id])
+
+  revenueOwnerId   String?
+  revenueOwner     User?    @relation("OppRevenueOwner", fields: [revenueOwnerId], references: [id])
+
+  territoryId      String?
+  territory        Territory? @relation(fields: [territoryId], references: [id])
+
+  businessUnitId   String?
+  businessUnit     BusinessUnit? @relation(fields: [businessUnitId], references: [id])
+
+  expectedRevenue  Decimal  @default(0) @db.Decimal(14, 2)
+  probability      Int      @default(20) // 0–100
+  expectedCloseDate DateTime?
+  stage            OpportunityStage @default(QUALIFICATION)
+  stageEnteredAt   DateTime @default(now())
+  lostReason       String?
+  notes            String?  @db.Text
+
+  fromLead         Lead?    @relation("LeadToOpp")
+  rfqs             RFQ[]
+  quotations       Quotation[]
+  activities       Activity[]
+  documents        Document[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([organizationId, stage])
+  @@index([customerId])
+}
+
+// -------------------------------------------------------------
+// RFQ
+// -------------------------------------------------------------
+
+enum RFQStatus {
+  DRAFT
+  RECEIVED
+  IN_PROGRESS
+  QUOTED
+  CLOSED
+  CANCELLED
+}
+
+enum RFQLineType {
+  MANPOWER
+  NON_MANPOWER
+  SOFTWARE_LICENSE
+  HARDWARE
+  SERVICE
+}
+
+model RFQ {
+  id              String    @id @default(cuid())
+  rfqNumber       String    @unique
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  opportunityId   String?
+  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  customerId      String
+  customer        Customer  @relation(fields: [customerId], references: [id])
+
+  rfqDate         DateTime  @default(now())
+  dueDate         DateTime?
+  currency        String    @default("INR")
+  terms           String?   @db.Text
+  remarks         String?   @db.Text
+  status          RFQStatus @default(DRAFT)
+
+  lineItems       RFQLineItem[]
+  quotations      Quotation[]
+  documents       Document[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([organizationId, status])
+}
+
+model RFQLineItem {
+  id          String      @id @default(cuid())
+  rfqId       String
+  rfq         RFQ         @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  lineType    RFQLineType
+  description String
+  quantity    Decimal     @default(1) @db.Decimal(14, 2)
+  uom         String?     // hours/days/months/units
+  // optional pointers to rate-card structures
+  manpowerGrade String?
+  manpowerExperience String?
+  licenseProduct String?
+  notes       String?
+  position    Int         @default(0)
+}
+
+// -------------------------------------------------------------
+// Rate Cards
+// -------------------------------------------------------------
+
+model ManpowerRateCard {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  designation    String   // Junior Dev / Sr Dev / Architect / QA / PM / BA …
+  experience     String   // "0-2", "3-5", "6-10", "10+"
+  grade          String?
+  location       String?
+  hourlyRate     Decimal  @db.Decimal(12, 2)
+  dailyRate      Decimal  @db.Decimal(12, 2)
+  monthlyRate    Decimal  @db.Decimal(14, 2)
+  currency       String   @default("INR")
+  effectiveFrom  DateTime @default(now())
+  effectiveTo    DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, designation])
+}
+
+model NonManpowerRateCard {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  category       String   // Travel / Infrastructure / Cloud / Training / Consulting
+  description    String
+  unit           String   // per trip / per GB / per hour …
+  unitCost       Decimal  @db.Decimal(14, 2)
+  tax            Decimal  @default(0) @db.Decimal(5, 2) // %
+  marginPct      Decimal  @default(0) @db.Decimal(5, 2)
+  currency       String   @default("INR")
+  effectiveFrom  DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, category])
+}
+
+model LicenseRateCard {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  product        String   // Microsoft / Salesforce / Jira / Power BI / SAP
+  edition        String?
+  licenseType    String   // Subscription / Perpetual / User / Device
+  duration       String   // Monthly / Yearly / 3-Year
+  cost           Decimal  @db.Decimal(14, 2)
+  marginPct      Decimal  @default(0) @db.Decimal(5, 2)
+  currency       String   @default("INR")
+  effectiveFrom  DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, product])
+}
+
+// -------------------------------------------------------------
+// Quotation
+// -------------------------------------------------------------
+
+enum QuotationStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  SENT
+  ACCEPTED
+  DECLINED
+  EXPIRED
+}
+
+enum QuotationItemType {
+  MANPOWER
+  NON_MANPOWER
+  LICENSE
+}
+
+model Quotation {
+  id              String   @id @default(cuid())
+  quotationNumber String   @unique
+  version         Int      @default(1)
+
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  rfqId           String?
+  rfq             RFQ?     @relation(fields: [rfqId], references: [id])
+
+  opportunityId   String?
+  opportunity     Opportunity? @relation(fields: [opportunityId], references: [id])
+
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+
+  status          QuotationStatus @default(DRAFT)
+  currency        String   @default("INR")
+  validUntil      DateTime?
+  notes           String?  @db.Text
+  termsAndConditions String? @db.Text
+
+  // computed totals (kept on row for fast reads)
+  baseCost        Decimal  @default(0) @db.Decimal(14, 2)
+  markupAmount    Decimal  @default(0) @db.Decimal(14, 2)
+  discountAmount  Decimal  @default(0) @db.Decimal(14, 2)
+  taxAmount       Decimal  @default(0) @db.Decimal(14, 2)
+  grandTotal      Decimal  @default(0) @db.Decimal(14, 2)
+  marginPct       Decimal  @default(0) @db.Decimal(6, 2)
+  profitAmount    Decimal  @default(0) @db.Decimal(14, 2)
+
+  items           QuotationItem[]
+  positions       PositionEstimate[]
+  approvalRequest ApprovalRequest?
+  documents       Document[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId, status])
+}
+
+model QuotationItem {
+  id          String   @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  itemType    QuotationItemType
+  description String
+  quantity    Decimal  @default(1) @db.Decimal(14, 2)
+  uom         String?
+  unitCost    Decimal  @db.Decimal(14, 2)
+  markupPct   Decimal  @default(0) @db.Decimal(6, 2)
+  discountPct Decimal  @default(0) @db.Decimal(6, 2)
+  taxPct      Decimal  @default(0) @db.Decimal(6, 2)
+  lineTotal   Decimal  @default(0) @db.Decimal(14, 2)
+
+  // manpower context
+  manpowerGrade String?
+  manpowerExperience String?
+  // license context
+  licenseProduct String?
+  licenseDuration String?
+
+  position    Int      @default(0)
+}
+
+// -------------------------------------------------------------
+// Position Determination Engine — resource estimation
+// -------------------------------------------------------------
+
+model PositionEstimate {
+  id          String   @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  designation String
+  grade       String?
+  experience  String?
+  headcount   Int      @default(1)
+  durationMonths Decimal @default(1) @db.Decimal(6, 2)
+  monthlyRate  Decimal @db.Decimal(14, 2)
+  monthlyBilling Decimal @db.Decimal(14, 2)
+  cost        Decimal  @db.Decimal(14, 2)
+  revenue     Decimal  @db.Decimal(14, 2)
+  margin      Decimal  @db.Decimal(14, 2)
+  marginPct   Decimal  @db.Decimal(6, 2)
+}
+
+// -------------------------------------------------------------
+// Approval Workflow
+// -------------------------------------------------------------
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+model ApprovalChain {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  appliesTo      String   // QUOTATION | RFQ ...
+  steps          ApprovalChainStep[]
+
+  @@unique([organizationId, name])
+}
+
+model ApprovalChainStep {
+  id            String   @id @default(cuid())
+  chainId       String
+  chain         ApprovalChain @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  stepNumber    Int
+  roleRequired  UserRole
+  label         String
+}
+
+model ApprovalRequest {
+  id            String   @id @default(cuid())
+  quotationId   String   @unique
+  quotation     Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  requestedById String
+  requestedBy   User     @relation("RequestedBy", fields: [requestedById], references: [id])
+
+  status        ApprovalStatus @default(PENDING)
+  currentStep   Int      @default(1)
+  notes         String?  @db.Text
+
+  steps         ApprovalStep[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ApprovalStep {
+  id            String   @id @default(cuid())
+  requestId     String
+  request       ApprovalRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  stepNumber    Int
+  label         String
+  roleRequired  UserRole
+  approverId    String?
+  approver      User?    @relation("ApproverUser", fields: [approverId], references: [id])
+  status        ApprovalStatus @default(PENDING)
+  comments      String?  @db.Text
+  actedAt       DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([requestId, stepNumber])
+}
+
+// -------------------------------------------------------------
+// Activities (Calls, Meetings, Emails, Follow Ups, Tasks)
+// -------------------------------------------------------------
+
+enum ActivityType {
+  CALL
+  MEETING
+  EMAIL
+  FOLLOW_UP
+  TASK
+  NOTE
+}
+
+enum ActivityStatus {
+  PLANNED
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+model Activity {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  type           ActivityType
+  status         ActivityStatus @default(PLANNED)
+  subject        String
+  description    String?  @db.Text
+  dueAt          DateTime?
+  completedAt    DateTime?
+
+  ownerId        String?
+  owner          User?    @relation(fields: [ownerId], references: [id])
+
+  leadId         String?
+  lead           Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  opportunityId  String?
+  opportunity    Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, dueAt])
+  @@index([opportunityId])
+  @@index([leadId])
+}
+
+// -------------------------------------------------------------
+// Documents
+// -------------------------------------------------------------
+
+model Document {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name           String
+  url            String
+  mimeType       String?
+  sizeBytes      Int?
+  version        Int      @default(1)
+  category       String?  // RFQ / SOW / Contract / Quotation / Customer
+
+  uploadedById   String?
+  uploadedBy     User?    @relation(fields: [uploadedById], references: [id])
+
+  leadId         String?
+  lead           Lead?    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  opportunityId  String?
+  opportunity    Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  rfqId          String?
+  rfq            RFQ?     @relation(fields: [rfqId], references: [id], onDelete: SetNull)
+
+  quotationId    String?
+  quotation      Quotation? @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+// -------------------------------------------------------------
+// Notifications
+// -------------------------------------------------------------
+
+enum NotificationType {
+  LEAD_NEW
+  STAGE_CHANGE
+  RFQ_CREATED
+  QUOTATION_APPROVED
+  QUOTATION_REJECTED
+  TASK_DUE
+  APPROVAL_PENDING
+  SYSTEM
+}
+
+model Notification {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type           NotificationType
+  title          String
+  body           String?  @db.Text
+  url            String?
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, readAt])
+}

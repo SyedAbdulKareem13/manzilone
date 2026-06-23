@@ -1,0 +1,88 @@
+import { NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { nextOppNumber } from "@/lib/numbering";
+
+/**
+ * Convert Lead → Opportunity. Carries customer/contacts/activities/notes/docs.
+ */
+export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user?.organizationId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const orgId = session.user.organizationId;
+  const lead = await prisma.lead.findFirst({
+    where: { id, organizationId: orgId },
+    include: { activities: true, documents: true },
+  });
+  if (!lead) return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+  if (lead.convertedOpportunityId) {
+    return NextResponse.json({ error: "Lead already converted" }, { status: 409 });
+  }
+
+  // Ensure customer
+  let customerId = lead.customerId;
+  if (!customerId) {
+    const customer = await prisma.customer.create({
+      data: {
+        organizationId: orgId,
+        name: lead.company,
+        industry: lead.industry,
+        contacts: lead.contactPerson
+          ? {
+              create: [
+                {
+                  name: lead.contactPerson,
+                  email: lead.email,
+                  mobile: lead.mobile,
+                  isPrimary: true,
+                },
+              ],
+            }
+          : undefined,
+      },
+    });
+    customerId = customer.id;
+  }
+
+  const oppNumber = await nextOppNumber(orgId);
+  const opp = await prisma.opportunity.create({
+    data: {
+      oppNumber,
+      organizationId: orgId,
+      name: `${lead.company} — ${lead.name}`,
+      customerId,
+      ownerId: lead.ownerId ?? session.user.id,
+      revenueOwnerId: lead.ownerId ?? session.user.id,
+      territoryId: lead.territoryId ?? undefined,
+      expectedRevenue: lead.expectedRevenue ?? 0,
+      probability: 20,
+      stage: "QUALIFICATION",
+      notes: lead.notes,
+    },
+  });
+
+  // Move activities and documents
+  await prisma.$transaction([
+    prisma.activity.updateMany({
+      where: { leadId: lead.id },
+      data: { opportunityId: opp.id, leadId: null },
+    }),
+    prisma.document.updateMany({
+      where: { leadId: lead.id },
+      data: { opportunityId: opp.id, leadId: null },
+    }),
+    prisma.lead.update({
+      where: { id: lead.id },
+      data: {
+        status: "CONVERTED",
+        customerId,
+        convertedOpportunityId: opp.id,
+      },
+    }),
+  ]);
+
+  return NextResponse.json({ opportunity: opp });
+}
