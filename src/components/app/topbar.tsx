@@ -3,6 +3,7 @@
 import { signOut } from "next-auth/react";
 import { Bell, Moon, Search, Sun, LogOut, User as UserIcon, Settings } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommandPalette } from "@/components/app/command-palette";
@@ -24,6 +25,7 @@ export function Topbar({
 }) {
   const { theme, setTheme } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/90 supports-[backdrop-filter]:bg-background/80 px-4 lg:px-8">
@@ -66,10 +68,10 @@ export function Topbar({
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>My account</DropdownMenuLabel>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/app/settings")}>
               <UserIcon /> Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push("/app/settings")}>
               <Settings /> Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />

@@ -1,6 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk, Noto_Nastaliq_Urdu } from "next/font/google";
+import { Inter, Space_Grotesk, Noto_Nastaliq_Urdu, DM_Sans, DM_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "@/components/session-provider";
 import { MotionProvider } from "@/components/motion-provider";
@@ -15,6 +15,19 @@ const urdu = Noto_Nastaliq_Urdu({
   variable: "--font-urdu",
   display: "swap",
 });
+// Platinum theme fonts (from the design handoff)
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-dmsans",
+  display: "swap",
+});
+const dmMono = DM_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-dmmono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Manzil One — منزل ون | Premium revenue platform",
@@ -25,9 +38,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${sans.variable} ${display.variable} ${urdu.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${sans.variable} ${display.variable} ${urdu.variable} ${dmSans.variable} ${dmMono.variable}`}
+    >
       <body className="font-sans">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="platinum"
+          themes={["light", "dark", "platinum"]}
+          enableSystem={false}
+          disableTransitionOnChange
+        >
           <SessionProvider>
             <TooltipProvider delayDuration={120}>
               <MotionProvider>{children}</MotionProvider>

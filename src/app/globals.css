@@ -94,6 +94,65 @@
     --brand-from: 252 95% 70%;
     --brand-to: 234 92% 66%;
   }
+
+  /* ----------------------------------------------------------------
+     Platinum — warm light theme from the design handoff.
+     Coral primary (#FF5C5C), warm off-white (#FAFAF7), DM Sans.
+     Same layout as light/dark — only colors + font family change.
+  ---------------------------------------------------------------- */
+  .platinum {
+    --background: 60 23% 97%;
+    --foreground: 228 14% 7%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 228 14% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 228 14% 7%;
+
+    --primary: 0 100% 68%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 60 14% 96%;
+    --secondary-foreground: 222 13% 18%;
+
+    --muted: 60 14% 95%;
+    --muted-foreground: 220 6% 51%;
+
+    --accent: 0 100% 97%;
+    --accent-foreground: 0 72% 51%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 162 88% 28%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 60 11% 92%;
+    --input: 60 11% 90%;
+    --ring: 0 100% 68%;
+
+    --chart-1: 0 100% 68%;
+    --chart-2: 14 100% 70%;
+    --chart-3: 162 84% 39%;
+    --chart-4: 38 95% 58%;
+    --chart-5: 270 60% 65%;
+
+    --radius: 0.625rem;
+
+    /* Warm coral button/logo gradient (design: 180deg #FF6B6B → #F44848) */
+    --brand-from: 0 100% 69%;
+    --brand-to: 0 89% 62%;
+    --brand-gradient: linear-gradient(180deg, #ff6b6b, #f44848);
+
+    /* DM Sans everywhere (loaded in layout.tsx) */
+    --font-sans: var(--font-dmsans);
+    --font-display: var(--font-dmsans);
+  }
 }
 
 @layer base {
