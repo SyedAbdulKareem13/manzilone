@@ -96,60 +96,117 @@
   }
 
   /* ----------------------------------------------------------------
-     Platinum — warm light theme from the design handoff.
-     Coral primary (#FF5C5C), warm off-white (#FAFAF7), DM Sans.
-     Same layout as light/dark — only colors + font family change.
+     Accent themes (design handoff). Shared warm-light base + DM Sans;
+     each accent only swaps primary / ring / accent / chart-1 / gradient.
+     Default theme is "platinum" (coral). light & dark stay untouched.
   ---------------------------------------------------------------- */
-  .platinum {
+  .platinum, .sapphire, .emerald, .amber, .violet {
     --background: 60 23% 97%;
     --foreground: 228 14% 7%;
-
     --card: 0 0% 100%;
     --card-foreground: 228 14% 7%;
-
     --popover: 0 0% 100%;
     --popover-foreground: 228 14% 7%;
-
-    --primary: 0 100% 68%;
-    --primary-foreground: 0 0% 100%;
-
     --secondary: 60 14% 96%;
     --secondary-foreground: 222 13% 18%;
-
     --muted: 60 14% 95%;
     --muted-foreground: 220 6% 51%;
-
-    --accent: 0 100% 97%;
-    --accent-foreground: 0 72% 51%;
-
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-
     --success: 162 88% 28%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
-
     --border: 60 11% 92%;
     --input: 60 11% 90%;
-    --ring: 0 100% 68%;
-
-    --chart-1: 0 100% 68%;
     --chart-2: 14 100% 70%;
     --chart-3: 162 84% 39%;
     --chart-4: 38 95% 58%;
     --chart-5: 270 60% 65%;
-
     --radius: 0.625rem;
+    --font-sans: var(--font-dmsans);
+    --font-display: var(--font-dmsans);
+  }
 
-    /* Warm coral button/logo gradient (design: 180deg #FF6B6B → #F44848) */
-    --brand-from: 0 100% 69%;
-    --brand-to: 0 89% 62%;
+  .platinum {
+    --primary: 0 100% 68%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 0 100% 68%;
+    --accent: 0 100% 97%;
+    --accent-foreground: 0 72% 51%;
+    --chart-1: 0 100% 68%;
     --brand-gradient: linear-gradient(180deg, #ff6b6b, #f44848);
+  }
+  .sapphire {
+    --primary: 228 88% 62%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 228 88% 62%;
+    --accent: 228 100% 96%;
+    --accent-foreground: 228 70% 48%;
+    --chart-1: 228 88% 62%;
+    --brand-gradient: linear-gradient(180deg, #5b7cff, #3b54e0);
+  }
+  .emerald {
+    --primary: 160 84% 34%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 160 84% 34%;
+    --accent: 160 70% 94%;
+    --accent-foreground: 162 84% 26%;
+    --chart-1: 160 84% 39%;
+    --brand-gradient: linear-gradient(180deg, #10b981, #059669);
+  }
+  .amber {
+    --primary: 36 95% 48%;
+    --primary-foreground: 30 45% 12%;
+    --ring: 36 95% 48%;
+    --accent: 42 100% 92%;
+    --accent-foreground: 30 70% 30%;
+    --chart-1: 38 95% 55%;
+    --brand-gradient: linear-gradient(180deg, #fbbf24, #e08e0b);
+  }
+  .violet {
+    --primary: 258 90% 66%;
+    --primary-foreground: 0 0% 100%;
+    --ring: 258 90% 66%;
+    --accent: 258 100% 96%;
+    --accent-foreground: 258 70% 54%;
+    --chart-1: 258 90% 66%;
+    --brand-gradient: linear-gradient(180deg, #8b5cf6, #6d28d9);
+  }
 
-    /* DM Sans everywhere (loaded in layout.tsx) */
+  /* Graphite — warm dark variant (DM Sans, coral accent) */
+  .graphite {
+    --background: 228 16% 9%;
+    --foreground: 40 20% 96%;
+    --card: 228 14% 12%;
+    --card-foreground: 40 20% 96%;
+    --popover: 228 14% 12%;
+    --popover-foreground: 40 20% 96%;
+    --primary: 0 100% 70%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 228 12% 16%;
+    --secondary-foreground: 40 20% 96%;
+    --muted: 228 12% 16%;
+    --muted-foreground: 220 10% 62%;
+    --accent: 228 14% 16%;
+    --accent-foreground: 0 100% 78%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 162 70% 45%;
+    --warning: 38 92% 58%;
+    --info: 199 89% 56%;
+    --border: 228 12% 18%;
+    --input: 228 12% 18%;
+    --ring: 0 100% 70%;
+    --chart-1: 0 100% 70%;
+    --chart-2: 14 100% 72%;
+    --chart-3: 162 70% 55%;
+    --chart-4: 38 95% 65%;
+    --chart-5: 270 70% 72%;
+    --radius: 0.625rem;
+    --brand-gradient: linear-gradient(180deg, #ff6b6b, #f44848);
     --font-sans: var(--font-dmsans);
     --font-display: var(--font-dmsans);
   }

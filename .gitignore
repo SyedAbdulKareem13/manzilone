@@ -16,3 +16,7 @@ prisma/migrations/dev.db*
 coverage
 
 .vercel
+
+# TS incremental cache
+tsconfig.tsbuildinfo
+*.tsbuildinfo

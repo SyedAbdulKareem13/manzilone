@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider
           attribute="class"
           defaultTheme="platinum"
-          themes={["light", "dark", "platinum"]}
+          themes={["light", "dark", "platinum", "sapphire", "emerald", "amber", "violet", "graphite"]}
           enableSystem={false}
           disableTransitionOnChange
         >

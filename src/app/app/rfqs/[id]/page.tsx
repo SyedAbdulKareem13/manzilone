@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, FileText, Receipt } from "lucide-react";
+import { ArrowLeft, FileDown, FileText, Receipt } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,9 +28,16 @@ export default async function RFQDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div>
-      <Link href="/app/rfqs" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> All RFQs
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link href="/app/rfqs" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> All RFQs
+        </Link>
+        <Link href={`/app/rfqs/${rfq.id}/print`} target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" size="sm">
+            <FileDown className="h-4 w-4" /> Export PDF
+          </Button>
+        </Link>
+      </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>

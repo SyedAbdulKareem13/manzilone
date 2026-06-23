@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileDown } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -31,9 +32,16 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
 
   return (
     <div>
-      <Link href="/app/quotations" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> All quotations
-      </Link>
+      <div className="flex items-center justify-between gap-3">
+        <Link href="/app/quotations" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" /> All quotations
+        </Link>
+        <Link href={`/app/quotations/${q.id}/print`} target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" size="sm">
+            <FileDown className="h-4 w-4" /> Export PDF
+          </Button>
+        </Link>
+      </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>

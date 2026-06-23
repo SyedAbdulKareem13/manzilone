@@ -18,6 +18,15 @@ export function LoginCard() {
   const callback = search.get("from") ?? "/app";
   const [loading, setLoading] = useState(false);
 
+  async function handleGoogle() {
+    try {
+      const res = await signIn("google", { callbackUrl: callback, redirect: false });
+      if (res?.error) throw new Error(res.error);
+    } catch {
+      toast.error("Google sign-in isn't configured yet — use email or OTP.");
+    }
+  }
+
   async function handleCreds(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -81,7 +90,7 @@ export function LoginCard() {
         <Button
           variant="glass"
           className="mt-6 w-full"
-          onClick={() => signIn("google", { callbackUrl: callback })}
+          onClick={handleGoogle}
         >
           <GoogleLogo /> Continue with Google
         </Button>
