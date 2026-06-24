@@ -57,5 +57,6 @@ export const NAV_ITEMS = [
   { href: "/app/rate-cards", label: "Rate Cards", icon: "BadgeDollarSign" },
   { href: "/app/approvals", label: "Approvals", icon: "ShieldCheck" },
   { href: "/app/reports", label: "Reports", icon: "BarChart3" },
+  { href: "/app/releases", label: "What's New", icon: "Rocket" },
   { href: "/app/admin", label: "Admin", icon: "Settings" },
 ] as const;
