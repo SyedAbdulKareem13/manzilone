@@ -8,10 +8,11 @@ import { OPP_STAGES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 /**
- * Horizontal pipeline-stage stepper for the opportunity detail page.
- * Evenly-spaced nodes on a single connected track: completed nodes filled,
- * the current node emphasized (brand gradient), upcoming muted. Clicking a
- * node moves the deal (optimistic, with rollback). WON / LOST are terminal.
+ * Pipeline-stage control for the opportunity detail page.
+ * A responsive grid of stage cards (the design-system "stage rail" pattern):
+ * completed stages are tinted + checked, the current stage glows with the
+ * brand gradient, upcoming stages are muted. Clicking moves the deal
+ * (optimistic, with rollback). WON / LOST are terminal outcomes.
  */
 export function OpportunityStage({
   opportunityId,
@@ -29,6 +30,7 @@ export function OpportunityStage({
   const isWon = current === "WON";
   const isLost = current === "LOST";
   const isTerminal = isWon || isLost;
+  const currentLabel = OPP_STAGES.find((s) => s.value === current)?.label ?? current;
 
   async function change(value: string) {
     if (value === current || saving) return;
@@ -55,68 +57,67 @@ export function OpportunityStage({
 
   return (
     <div className="rounded-2xl border bg-card/60 p-4">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Pipeline stage
-        </span>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Pipeline stage
+          </span>
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+            {isWon ? "Won" : isLost ? "Lost" : currentLabel}
+          </span>
+        </div>
         <span className="hidden text-[11px] text-muted-foreground sm:inline">
           Click a stage to move the deal
         </span>
       </div>
 
-      {/* Stepper track */}
-      <div className="overflow-x-auto pb-1 scrollbar-thin">
-        <div className="flex min-w-max">
-          {TRACK.map((s, i) => {
-            const done = isTerminal ? true : i < currentIdx;
-            const active = !isTerminal && i === currentIdx;
-            const last = i === TRACK.length - 1;
-            const segmentFilled = isTerminal || i < currentIdx;
-            return (
-              <div key={s.value} className="relative flex w-[92px] flex-col items-center">
-                {/* Connector to the next node — sits behind the nodes, centered on them */}
-                {!last ? (
-                  <span
-                    className={cn(
-                      "absolute left-1/2 top-4 z-0 h-0.5 w-full -translate-y-1/2 transition-colors",
-                      segmentFilled ? "bg-primary" : "bg-border"
-                    )}
-                  />
-                ) : null}
-
-                {/* Node */}
-                <button
-                  type="button"
-                  onClick={() => change(s.value)}
-                  disabled={saving}
-                  title={s.label}
-                  aria-current={active ? "step" : undefined}
+      {/* Stage rail — responsive grid, wraps instead of overflowing */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {TRACK.map((s, i) => {
+          const done = isTerminal ? true : i < currentIdx;
+          const active = !isTerminal && i === currentIdx;
+          return (
+            <button
+              key={s.value}
+              type="button"
+              onClick={() => change(s.value)}
+              disabled={saving}
+              aria-current={active ? "step" : undefined}
+              className={cn(
+                "group flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-70",
+                active
+                  ? "border-primary bg-primary/10 shadow-sm ring-2 ring-primary/15"
+                  : done
+                  ? "border-primary/25 bg-primary/[0.06] hover:bg-primary/10"
+                  : "border-border bg-card hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent/40"
+              )}
+            >
+              <span
+                className={cn(
+                  "grid h-7 w-7 shrink-0 place-items-center rounded-full text-[11px] font-semibold transition-colors",
+                  active
+                    ? "btn-gradient text-white shadow-[0_4px_12px_-2px_hsl(var(--primary)/0.5)]"
+                    : done
+                    ? "bg-primary text-white"
+                    : "border border-border bg-muted text-muted-foreground"
+                )}
+              >
+                {done && !active ? <Check className="h-3.5 w-3.5" /> : <span className="tabular-nums">{i + 1}</span>}
+              </span>
+              <span className="min-w-0">
+                <span
                   className={cn(
-                    "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 text-[11px] font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-70",
-                    active && "btn-gradient scale-110 border-transparent text-white shadow-md ring-4 ring-primary/20",
-                    !active && done && "border-primary bg-primary/15 text-primary hover:bg-primary/25",
-                    !active && !done && "border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                  )}
-                >
-                  {done && !active ? <Check className="h-3.5 w-3.5" /> : <span className="tabular-nums">{i + 1}</span>}
-                </button>
-
-                {/* Label */}
-                <button
-                  type="button"
-                  onClick={() => change(s.value)}
-                  disabled={saving}
-                  className={cn(
-                    "mt-2 w-full px-1 text-center text-[10px] font-medium leading-tight transition-colors disabled:cursor-not-allowed",
-                    active ? "text-foreground" : done ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    "block truncate text-[12px] font-medium leading-tight",
+                    active ? "text-foreground" : done ? "text-foreground/80" : "text-muted-foreground"
                   )}
                 >
                   {s.label}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                </span>
+                <span className="block text-[10px] text-muted-foreground tabular-nums">{s.probability}%</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Terminal outcomes */}
