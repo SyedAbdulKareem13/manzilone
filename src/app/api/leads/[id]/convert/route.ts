@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextOppNumber } from "@/lib/numbering";
+import { recordAudit } from "@/lib/audit";
 
 /**
  * Convert Lead → Opportunity. Carries customer/contacts/activities/notes/docs.
@@ -84,5 +85,25 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     }),
   ]);
 
+  await recordAudit({
+    organizationId: orgId,
+    entityType: "LEAD",
+    entityId: lead.id,
+    entityLabel: lead.leadNumber,
+    action: "CONVERTED",
+    summary: `Converted to opportunity ${opp.oppNumber}`,
+    actorId: session.user.id,
+    actorName: session.user.name,
+  });
+  await recordAudit({
+    organizationId: orgId,
+    entityType: "OPPORTUNITY",
+    entityId: opp.id,
+    entityLabel: opp.oppNumber,
+    action: "CREATED",
+    summary: `Created from lead ${lead.leadNumber}`,
+    actorId: session.user.id,
+    actorName: session.user.name,
+  });
   return NextResponse.json({ opportunity: opp });
 }

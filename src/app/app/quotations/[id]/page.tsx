@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ApprovalPanel } from "@/components/quotation/approval-panel";
+import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
 
 export const dynamic = "force-dynamic";
 
@@ -156,6 +157,7 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
               <Row label="Valid until" value={formatDate(q.validUntil)} />
             </CardContent>
           </Card>
+          <RecordAuditTrail organizationId={session.user.organizationId} entityType="QUOTATION" entityId={q.id} />
         </div>
       </div>
     </div>

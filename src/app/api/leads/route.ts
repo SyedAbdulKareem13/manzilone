@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextLeadNumber } from "@/lib/numbering";
+import { recordAudit } from "@/lib/audit";
 
 const createSchema = z.object({
   name: z.string().min(2),
@@ -66,6 +67,16 @@ export async function POST(req: Request) {
       organizationId: orgId,
       ownerId: session.user.id,
     },
+  });
+  await recordAudit({
+    organizationId: orgId,
+    entityType: "LEAD",
+    entityId: lead.id,
+    entityLabel: lead.leadNumber,
+    action: "CREATED",
+    summary: `Lead “${lead.name}” (${lead.company}) created`,
+    actorId: session.user.id,
+    actorName: session.user.name,
   });
   return NextResponse.json({ lead });
 }

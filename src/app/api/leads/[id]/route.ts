@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { recordAudit, diffFields } from "@/lib/audit";
 
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
@@ -27,9 +28,32 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid" }, { status: 400 });
   }
+  const before = await prisma.lead.findFirst({
+    where: { id, organizationId: session.user.organizationId },
+  });
+  if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const lead = await prisma.lead.update({
     where: { id, organizationId: session.user.organizationId },
     data: parsed.data,
+  });
+
+  const changes = diffFields(before as Record<string, unknown>, parsed.data as Record<string, unknown>, [
+    "name", "company", "contactPerson", "email", "mobile", "source", "industry", "notes", "status", "expectedRevenue",
+  ]);
+  const statusChanged = parsed.data.status && parsed.data.status !== before.status;
+  await recordAudit({
+    organizationId: session.user.organizationId,
+    entityType: "LEAD",
+    entityId: lead.id,
+    entityLabel: lead.leadNumber,
+    action: statusChanged ? "STATUS_CHANGED" : "UPDATED",
+    summary: statusChanged
+      ? `Status changed: ${before.status} → ${parsed.data.status}`
+      : `Lead updated · ${changes.length} field${changes.length === 1 ? "" : "s"}`,
+    changes,
+    actorId: session.user.id,
+    actorName: session.user.name,
   });
   return NextResponse.json({ lead });
 }
@@ -40,8 +64,24 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!session?.user?.organizationId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const existing = await prisma.lead.findFirst({
+    where: { id, organizationId: session.user.organizationId },
+    select: { leadNumber: true, name: true },
+  });
   await prisma.lead.delete({
     where: { id, organizationId: session.user.organizationId },
   });
+  if (existing) {
+    await recordAudit({
+      organizationId: session.user.organizationId,
+      entityType: "LEAD",
+      entityId: id,
+      entityLabel: existing.leadNumber,
+      action: "DELETED",
+      summary: `Lead “${existing.name}” deleted`,
+      actorId: session.user.id,
+      actorName: session.user.name,
+    });
+  }
   return NextResponse.json({ ok: true });
 }

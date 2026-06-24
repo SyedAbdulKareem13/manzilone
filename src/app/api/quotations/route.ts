@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextQuotationNumber } from "@/lib/numbering";
 import { computeQuotation } from "@/lib/quotation-engine";
+import { recordAudit } from "@/lib/audit";
 
 const itemSchema = z.object({
   itemType: z.enum(["MANPOWER", "NON_MANPOWER", "LICENSE"]),
@@ -106,6 +107,16 @@ export async function POST(req: Request) {
     }).catch(() => null);
   }
 
+  await recordAudit({
+    organizationId: orgId,
+    entityType: "QUOTATION",
+    entityId: quotation.id,
+    entityLabel: quotation.quotationNumber,
+    action: "CREATED",
+    summary: `Quotation created · grand total ${Number(quotation.grandTotal).toLocaleString("en-IN")} ${quotation.currency}`,
+    actorId: session.user.id,
+    actorName: session.user.name,
+  });
   return NextResponse.json({ quotation });
 }
 

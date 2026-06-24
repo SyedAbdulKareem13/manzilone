@@ -3,43 +3,35 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Kanban as KanbanIcon } from "lucide-react";
 import { auth } from "@/lib/auth";
-import { OpportunityCreate } from "@/components/opportunities/opportunity-create";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatCompactCurrency, formatDate } from "@/lib/utils";
-import { OPP_STAGES } from "@/lib/constants";
+import { OpportunityCreate } from "@/components/opportunities/opportunity-create";
+import { OpportunitiesClient } from "./opportunities-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function OpportunitiesPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
-  const opps = await prisma.opportunity.findMany({
-    where: { organizationId: session.user.organizationId },
-    orderBy: { updatedAt: "desc" },
-    include: {
-      customer: { select: { name: true } },
-      owner: { select: { name: true } },
-    },
-    take: 200,
-  });
-  const customers = await prisma.customer.findMany({
-    where: { organizationId: session.user.organizationId },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
-  const stageMap = new Map(OPP_STAGES.map((s) => [s.value, s.label]));
+
+  const [opps, customers] = await Promise.all([
+    prisma.opportunity.findMany({
+      where: { organizationId: session.user.organizationId },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        customer: { select: { name: true } },
+        owner: { select: { name: true } },
+      },
+      take: 300,
+    }),
+    prisma.customer.findMany({
+      where: { organizationId: session.user.organizationId },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   return (
     <>
@@ -71,45 +63,7 @@ export default async function OpportunitiesPage() {
           }
         />
       ) : (
-        <div className="luxury-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Opportunity</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead>Owner</TableHead>
-                <TableHead className="text-right">Expected</TableHead>
-                <TableHead className="text-right">Probability</TableHead>
-                <TableHead>Close</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {opps.map((o) => (
-                <TableRow key={o.id}>
-                  <TableCell>
-                    <Link href={`/app/opportunities/${o.id}`} className="font-medium hover:underline">
-                      {o.name}
-                    </Link>
-                    <div className="text-xs text-muted-foreground">{o.oppNumber}</div>
-                  </TableCell>
-                  <TableCell>{o.customer.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="soft">{stageMap.get(o.stage) ?? o.stage}</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm">{o.owner?.name ?? "—"}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCompactCurrency(Number(o.expectedRevenue))}
-                  </TableCell>
-                  <TableCell className="text-right">{o.probability}%</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(o.expectedCloseDate)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <OpportunitiesClient opps={JSON.parse(JSON.stringify(opps))} customers={customers} />
       )}
     </>
   );

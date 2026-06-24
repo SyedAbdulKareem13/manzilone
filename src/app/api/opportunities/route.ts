@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextOppNumber } from "@/lib/numbering";
+import { recordAudit } from "@/lib/audit";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -55,6 +56,16 @@ export async function POST(req: Request) {
       revenueOwnerId: session.user.id,
       expectedCloseDate: parsed.data.expectedCloseDate ? new Date(parsed.data.expectedCloseDate) : undefined,
     },
+  });
+  await recordAudit({
+    organizationId: orgId,
+    entityType: "OPPORTUNITY",
+    entityId: opp.id,
+    entityLabel: opp.oppNumber,
+    action: "CREATED",
+    summary: `Opportunity “${opp.name}” created at ${opp.stage}`,
+    actorId: session.user.id,
+    actorName: session.user.name,
   });
   return NextResponse.json({ opportunity: opp });
 }

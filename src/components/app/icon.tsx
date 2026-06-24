@@ -16,6 +16,7 @@ import {
   Coins,
   TrendingUp,
   Rocket,
+  History,
   Circle,
   type LucideIcon,
 } from "lucide-react";
@@ -43,6 +44,7 @@ const ICONS: Record<string, LucideIcon> = {
   Coins,
   TrendingUp,
   Rocket,
+  History,
   Circle,
 };
 

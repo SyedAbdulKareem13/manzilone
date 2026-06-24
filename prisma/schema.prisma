@@ -43,6 +43,7 @@ model Organization {
   notifications   Notification[]
   activities      Activity[]
   documents       Document[]
+  auditLogs       AuditLog[]
 }
 
 enum UserRole {
@@ -758,4 +759,27 @@ model Notification {
   createdAt      DateTime @default(now())
 
   @@index([userId, readAt])
+}
+
+// -------------------------------------------------------------
+// Audit trail — system change history per record (transparent log)
+// -------------------------------------------------------------
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  entityType  String   // LEAD | OPPORTUNITY | QUOTATION | RFQ
+  entityId    String
+  entityLabel String?  // e.g. LD-00007 / OPP-00002 / QT-00001
+  action      String   // CREATED | UPDATED | STAGE_CHANGED | STATUS_CHANGED | CONVERTED | SUBMITTED | APPROVED | REJECTED | DELETED
+  summary     String?  @db.Text
+  changes     Json?    // [{ field, from, to }]
+  actorId     String?
+  actorName   String?
+  createdAt   DateTime @default(now())
+
+  @@index([organizationId, entityType, entityId, createdAt])
+  @@index([organizationId, createdAt])
 }

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { APPROVAL_CHAIN_DEFAULT } from "@/lib/constants";
+import { recordAudit } from "@/lib/audit";
 
 const schema = z.object({
   action: z.enum(["SUBMIT", "APPROVE", "REJECT"]),
@@ -48,6 +49,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       where: { id: quotation.id },
       data: { status: "PENDING_APPROVAL" },
     });
+    await recordAudit({
+      organizationId: session.user.organizationId,
+      entityType: "QUOTATION",
+      entityId: quotation.id,
+      entityLabel: quotation.quotationNumber,
+      action: "SUBMITTED",
+      summary: "Submitted for approval",
+      actorId: session.user.id,
+      actorName: session.user.name,
+    });
     return NextResponse.json({ request });
   }
 
@@ -79,6 +90,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         data: { status: "REJECTED" },
       }),
     ]);
+    await recordAudit({
+      organizationId: session.user.organizationId,
+      entityType: "QUOTATION",
+      entityId: quotation.id,
+      entityLabel: quotation.quotationNumber,
+      action: "REJECTED",
+      summary: `Rejected at “${currentStep.label}”${parsed.data.comments ? ` — ${parsed.data.comments}` : ""}`,
+      actorId: session.user.id,
+      actorName: session.user.name,
+    });
     return NextResponse.json({ ok: true });
   }
 
@@ -113,5 +134,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }),
     ]);
   }
+  await recordAudit({
+    organizationId: session.user.organizationId,
+    entityType: "QUOTATION",
+    entityId: quotation.id,
+    entityLabel: quotation.quotationNumber,
+    action: "APPROVED",
+    summary: nextStep
+      ? `Approved “${currentStep.label}” — awaiting ${nextStep.label}`
+      : "Final approval granted — quotation approved",
+    actorId: session.user.id,
+    actorName: session.user.name,
+  });
   return NextResponse.json({ ok: true });
 }
