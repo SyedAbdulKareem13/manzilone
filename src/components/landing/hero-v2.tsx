@@ -105,7 +105,6 @@ type EngineRefs = {
 };
 
 type EngineOpts = {
-  T: ThreeNS;
   accent: string;
   motion: "Calm" | "Balanced" | "Showcase";
   pipelineCr: number;
@@ -125,7 +124,7 @@ type CardPhys = {
 class HeroEngine {
   refs: EngineRefs;
   o: EngineOpts;
-  T: ThreeNS;
+  T?: ThreeNS;
 
   mouse = { x: 0, y: 0 };
   pm = { x: 0, y: 0 };
@@ -168,10 +167,17 @@ class HeroEngine {
   constructor(refs: EngineRefs, opts: EngineOpts) {
     this.refs = refs;
     this.o = opts;
-    this.T = opts.T;
     this.pipelineTrue = opts.pipelineCr;
     this.wonTrue = opts.won;
     this.oppsTrue = opts.opps;
+  }
+
+  /** Attach the WebGL layer once three.js has dynamically loaded. The DOM
+   *  animations (reveal, parallax, counters, drag, confetti, credit) already
+   *  run from mount(), so the hero is never blank even if this is slow/fails. */
+  attachThree(T: ThreeNS) {
+    this.T = T;
+    this.initThree();
   }
 
   mount() {
@@ -195,7 +201,7 @@ class HeroEngine {
     this.animateCredit();
 
     this._raf = requestAnimationFrame(this.loop);
-    this.initThree();
+    // initThree() is called later via attachThree() when three.js finishes loading.
     this._onResize = () => this.onResize();
     window.addEventListener("resize", this._onResize);
   }
@@ -278,7 +284,7 @@ class HeroEngine {
     gr.addColorStop(0.45, `rgba(${r},${g},${b},0.45)`);
     gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
     x.fillStyle = gr; x.fillRect(0, 0, s, s);
-    return new this.T.CanvasTexture(cv);
+    return new this.T!.CanvasTexture(cv);
   }
 
   rr(x: CanvasRenderingContext2D, a: number, b: number, w: number, h: number, rad: number) {
@@ -319,6 +325,7 @@ class HeroEngine {
   }
 
   async initThree() {
+    if (!this.T) return;
     const T = this.T;
     const canvas = this.refs.canvas, wrap = this.refs.root;
     try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch { /* noop */ }
@@ -396,7 +403,7 @@ class HeroEngine {
   }
 
   placeBeacon() {
-    if (!this.beacon || !this.camera) return;
+    if (!this.beacon || !this.camera || !this.T) return;
     const cr = this.refs.canvas.getBoundingClientRect();
     const dr = this.refs.drop.getBoundingClientRect();
     const cx = dr.left + dr.width / 2 - cr.left, cy = dr.top + dr.height / 2 - cr.top;
@@ -599,7 +606,7 @@ class HeroEngine {
   }
 
   triggerBeaconFX() {
-    if (!this.beacon || !this.scene) return;
+    if (!this.beacon || !this.scene || !this.T) return;
     const T = this.T;
     const wave = new T.Mesh(new T.TorusGeometry(0.5, 0.03, 16, 80), new T.MeshBasicMaterial({ color: this.o.accent, transparent: true, opacity: 0.9 }));
     wave.position.copy(this.beacon.group.position);
@@ -769,38 +776,41 @@ export function HeroV2({
 
   React.useEffect(() => {
     ensureFonts();
-    const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setCounters({ p: pipelineCr, o: opps, w: won });
-      return;
-    }
+    if (!rootRef.current || !canvasRef.current || !dropRef.current || !confettiRef.current) return;
+
+    // Start the DOM animations (reveal, parallax, counters, drag, confetti,
+    // credit) IMMEDIATELY — they don't depend on three.js. The full design
+    // animates on every machine; we intentionally do not gate on
+    // prefers-reduced-motion here so the hero matches the source design 1:1.
+    const engine = new HeroEngine(
+      {
+        root: rootRef.current,
+        canvas: canvasRef.current,
+        drop: dropRef.current,
+        card: cardRef.current,
+        confetti: confettiRef.current,
+        pipeline: pipelineRef.current,
+        creditWrap: creditWrapRef.current,
+        creditBadge: creditBadgeRef.current,
+        creditGlow: creditGlowRef.current,
+        creditSheen: creditSheenRef.current,
+        creditArrow: creditArrowRef.current,
+        creditIcon: creditIconRef.current,
+      },
+      { accent: ACCENT, motion: MOTION, pipelineCr, opps, won, setCounters, setDeal, setToast }
+    );
+    engineRef.current = engine;
+    engine.mount();
+
+    // Layer the WebGL scene on top once three.js has loaded (lazy chunk).
     let cancelled = false;
-    let engine: HeroEngine | null = null;
-    import("three").then((T) => {
-      if (cancelled || !rootRef.current || !canvasRef.current || !dropRef.current || !confettiRef.current) return;
-      engine = new HeroEngine(
-        {
-          root: rootRef.current,
-          canvas: canvasRef.current,
-          drop: dropRef.current,
-          card: cardRef.current,
-          confetti: confettiRef.current,
-          pipeline: pipelineRef.current,
-          creditWrap: creditWrapRef.current,
-          creditBadge: creditBadgeRef.current,
-          creditGlow: creditGlowRef.current,
-          creditSheen: creditSheenRef.current,
-          creditArrow: creditArrowRef.current,
-          creditIcon: creditIconRef.current,
-        },
-        { T: T as ThreeNS, accent: ACCENT, motion: MOTION, pipelineCr, opps, won, setCounters, setDeal, setToast }
-      );
-      engineRef.current = engine;
-      engine.mount();
-    });
+    import("three")
+      .then((T) => { if (!cancelled) engine.attachThree(T as unknown as ThreeNS); })
+      .catch((e) => { console.warn("three.js failed to load; DOM hero still animates", e); });
+
     return () => {
       cancelled = true;
-      engine?.destroy();
+      engine.destroy();
       engineRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
