@@ -26,7 +26,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch("/api/otp/issue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier: email, channel: "EMAIL" }),
+        body: JSON.stringify({ identifier: email, channel: "EMAIL", purpose: "reset" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to send code");
