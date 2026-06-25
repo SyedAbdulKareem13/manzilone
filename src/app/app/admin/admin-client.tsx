@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical, Save } from "lucide-react";
+import { Plus, Trash2, GripVertical, Save, Sparkles, Check } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,18 +56,21 @@ type Territory = { id: string; name: string; region: string | null };
 type BusinessUnit = { id: string; name: string; code: string | null };
 type ChainStep = { id?: string; label: string; roleRequired: Role };
 type Chain = { id: string; name: string; appliesTo: string; steps: ChainStep[] };
+type HeroVersion = "v1" | "v2";
 
 export function AdminClient({
   users,
   territories,
   businessUnits,
   chain,
+  heroVersion,
   readOnly = false,
 }: {
   users: AdminUser[];
   territories: Territory[];
   businessUnits: BusinessUnit[];
   chain: Chain | null;
+  heroVersion: HeroVersion;
   readOnly?: boolean;
 }) {
   const router = useRouter();
@@ -79,6 +82,7 @@ export function AdminClient({
         <TabsTrigger value="territories">Territories</TabsTrigger>
         <TabsTrigger value="bus">Business units</TabsTrigger>
         <TabsTrigger value="chain">Approval chain</TabsTrigger>
+        <TabsTrigger value="landing">Landing</TabsTrigger>
       </TabsList>
 
       <TabsContent value="users">
@@ -93,7 +97,128 @@ export function AdminClient({
       <TabsContent value="chain">
         <ApprovalChainTab chain={chain} readOnly={readOnly} onChanged={() => router.refresh()} />
       </TabsContent>
+      <TabsContent value="landing">
+        <LandingTab heroVersion={heroVersion} readOnly={readOnly} onChanged={() => router.refresh()} />
+      </TabsContent>
     </Tabs>
+  );
+}
+
+/* ----------------------------- Landing ------------------------------ */
+
+function LandingTab({
+  heroVersion,
+  readOnly,
+  onChanged,
+}: {
+  heroVersion: HeroVersion;
+  readOnly: boolean;
+  onChanged: () => void;
+}) {
+  const [current, setCurrent] = useState<HeroVersion>(heroVersion);
+  const [saving, setSaving] = useState<HeroVersion | null>(null);
+
+  const options: {
+    value: HeroVersion;
+    title: string;
+    sub: string;
+    points: string[];
+  }[] = [
+    {
+      value: "v1",
+      title: "v1 · Classic",
+      sub: "The current refined landing",
+      points: ["Static gradient mesh + grid", "Live metrics strip", "Minimal, fast, calm"],
+    },
+    {
+      value: "v2",
+      title: "v2 · Immersive",
+      sub: "WebGL destination hero",
+      points: ["3D beacon + traveling deals", "Drag-to-win interaction", "Particle stream + confetti"],
+    },
+  ];
+
+  async function choose(v: HeroVersion) {
+    if (readOnly || v === current) return;
+    setSaving(v);
+    try {
+      const res = await fetch("/api/admin/app-config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ heroVersion: v }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return toast.error(data.error ?? "Failed to update");
+      setCurrent(data.heroVersion as HeroVersion);
+      toast.success(`Landing hero set to ${v.toUpperCase()}`);
+      onChanged();
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Landing hero</CardTitle>
+        <CardDescription>
+          Choose which hero the public landing page (/) shows. Applies to every visitor.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {options.map((o) => {
+            const active = current === o.value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                disabled={readOnly || saving !== null}
+                onClick={() => choose(o.value)}
+                className={`group relative rounded-2xl border p-5 text-left transition-all ${
+                  active
+                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                    : "hover:border-foreground/20 hover:bg-accent/40"
+                } disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className={`h-4 w-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                    <span className="font-semibold">{o.title}</span>
+                  </div>
+                  {active ? (
+                    <Badge variant="success" className="gap-1">
+                      <Check className="h-3 w-3" /> Live
+                    </Badge>
+                  ) : saving === o.value ? (
+                    <Badge variant="soft">Saving…</Badge>
+                  ) : null}
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">{o.sub}</p>
+                <ul className="mt-3 space-y-1.5">
+                  {o.points.map((p) => (
+                    <li key={p} className="flex items-center gap-2 text-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+              </button>
+            );
+          })}
+        </div>
+        {readOnly ? (
+          <p className="mt-4 text-sm text-muted-foreground">
+            Only administrators can switch the landing hero.
+          </p>
+        ) : (
+          <p className="mt-4 text-xs text-muted-foreground">
+            Tip: this is stored in Supabase (<code className="font-mono">AppConfig.heroVersion</code>) and can
+            also be flipped directly from the Supabase table editor.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

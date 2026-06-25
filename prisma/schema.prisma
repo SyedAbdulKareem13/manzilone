@@ -14,6 +14,16 @@ datasource db {
 }
 
 // -------------------------------------------------------------
+// Global app configuration (singleton, public-facing toggles)
+// -------------------------------------------------------------
+
+model AppConfig {
+  id          String   @id @default("singleton")
+  heroVersion String   @default("v1") // "v1" | "v2" — controls the public landing hero
+  updatedAt   DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
 // Tenancy & Identity
 // -------------------------------------------------------------
 

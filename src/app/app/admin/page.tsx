@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getHeroVersion } from "@/lib/app-config";
 import { PageHeader } from "@/components/app/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
@@ -14,7 +15,7 @@ export default async function AdminPage() {
   const orgId = session.user.organizationId;
   const isAdmin = session.user.role === "ADMIN";
 
-  const [users, territories, businessUnits, approvalChains] = await Promise.all([
+  const [users, territories, businessUnits, approvalChains, heroVersion] = await Promise.all([
     prisma.user.findMany({
       where: { organizationId: orgId },
       orderBy: { createdAt: "asc" },
@@ -35,6 +36,7 @@ export default async function AdminPage() {
       include: { steps: { orderBy: { stepNumber: "asc" } } },
       orderBy: { name: "asc" },
     }),
+    getHeroVersion(),
   ]);
 
   const chain = approvalChains[0]
@@ -73,6 +75,7 @@ export default async function AdminPage() {
         territories={territories}
         businessUnits={businessUnits}
         chain={chain}
+        heroVersion={heroVersion}
         readOnly={!isAdmin}
       />
     </>
