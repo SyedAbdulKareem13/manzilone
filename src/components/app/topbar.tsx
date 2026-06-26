@@ -1,12 +1,11 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { Moon, Search, Sun, LogOut, User as UserIcon, Settings } from "lucide-react";
+import { Search, LogOut, User as UserIcon, Settings } from "lucide-react";
 import { Notifications } from "@/components/app/notifications";
 import { WhatsNew } from "@/components/app/whats-new";
-import { useTheme } from "next-themes";
+import { ThemeMenu } from "@/components/theme-menu";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommandPalette } from "@/components/app/command-palette";
 import { useState, useEffect } from "react";
@@ -25,7 +24,6 @@ export function Topbar({
 }: {
   user: { name?: string | null; email?: string | null; image?: string | null };
 }) {
-  const { theme, setTheme } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const router = useRouter();
 
@@ -59,15 +57,7 @@ export function Topbar({
       </button>
 
       <div className="ml-auto flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          aria-label="Toggle theme"
-        >
-          <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-        </Button>
+        <ThemeMenu />
 
         <WhatsNew />
 
