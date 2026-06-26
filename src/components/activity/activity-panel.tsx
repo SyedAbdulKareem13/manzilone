@@ -22,6 +22,7 @@ import {
   Check,
   Loader2,
   Plus,
+  Pencil,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +32,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -213,6 +221,15 @@ function formatDataValue(v: unknown): string {
   return String(v);
 }
 
+/** Convert a stored ISO timestamp to a value for <input type="datetime-local">. */
+function toDateTimeLocal(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /* ------------------------------------------------------------------ */
 /* Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -238,6 +255,16 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
 
   // Mark-done in-flight tracking
   const [busyIds, setBusyIds] = React.useState<Set<string>>(new Set());
+
+  // Edit dialog state
+  const [editing, setEditing] = React.useState<ActivityRecord | null>(null);
+  const [editKey, setEditKey] = React.useState<string>("");
+  const [editSubject, setEditSubject] = React.useState("");
+  const [editDescription, setEditDescription] = React.useState("");
+  const [editDueAt, setEditDueAt] = React.useState("");
+  const [editStatus, setEditStatus] = React.useState<ActivityStatus>("PLANNED");
+  const [editCustom, setEditCustom] = React.useState<Record<string, string | boolean>>({});
+  const [savingEdit, setSavingEdit] = React.useState(false);
 
   // Client-only "now" for relative time (SSR-safe).
   const [now, setNow] = React.useState<number | null>(null);
@@ -466,6 +493,90 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
     [activities, busyIds]
   );
 
+  /* ----------------------------- Edit ------------------------------ */
+  const openEdit = React.useCallback((a: ActivityRecord) => {
+    setEditing(a);
+    setEditKey(a.type);
+    setEditSubject(a.subject);
+    setEditDescription(a.description ?? "");
+    setEditDueAt(toDateTimeLocal(a.dueAt));
+    setEditStatus(a.status);
+    const seed: Record<string, string | boolean> = {};
+    if (a.data) {
+      for (const [k, v] of Object.entries(a.data)) {
+        if (typeof v === "boolean") seed[k] = v;
+        else if (v !== null && v !== undefined) seed[k] = String(v);
+      }
+    }
+    setEditCustom(seed);
+  }, []);
+
+  const handleEditSubmit = React.useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!editing) return;
+      const trimmed = editSubject.trim();
+      if (!trimmed) {
+        toast.error("Subject is required");
+        return;
+      }
+      if (savingEdit) return;
+
+      // Merge onto the stored data so values for custom fields that are no
+      // longer in the active config (deactivated/deleted) are preserved, not
+      // silently wiped. Only the currently-editable keys are overwritten/cleared.
+      const mergedData: Record<string, unknown> = { ...(editing.data ?? {}) };
+      for (const f of customFields) {
+        const v = editCustom[f.fieldKey];
+        if (v === undefined || v === "") delete mergedData[f.fieldKey];
+        else mergedData[f.fieldKey] = v;
+      }
+      const hasData = customFields.length > 0 || !!editing.data;
+      const dueIso = showDueAt && editDueAt ? new Date(editDueAt).toISOString() : null;
+
+      setSavingEdit(true);
+      try {
+        const res = await fetch(`/api/activities`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: editing.id,
+            type: toPostType(editKey),
+            subject: trimmed,
+            description: showDescription ? editDescription.trim() || null : undefined,
+            dueAt: showDueAt ? dueIso : undefined,
+            status: showStatus ? editStatus : undefined,
+            data: hasData ? mergedData : undefined,
+          }),
+        });
+        if (!res.ok) throw new Error("Failed");
+        const json = await res.json();
+        const saved: ActivityRecord = json.activity;
+        setActivities((prev) => prev.map((a) => (a.id === saved.id ? saved : a)));
+        setEditing(null);
+        toast.success("Activity updated");
+      } catch {
+        toast.error("Couldn't update activity");
+      } finally {
+        setSavingEdit(false);
+      }
+    },
+    [
+      editing,
+      editSubject,
+      savingEdit,
+      customFields,
+      editCustom,
+      showDueAt,
+      editDueAt,
+      showDescription,
+      editDescription,
+      showStatus,
+      editStatus,
+      editKey,
+    ]
+  );
+
   /* ----------------------------- Render ---------------------------- */
   const count = activities.length;
 
@@ -659,12 +770,142 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
                   index={i}
                   isLast={i === activities.length - 1}
                   onMarkDone={() => markDone(a.id)}
+                  onEdit={() => openEdit(a)}
                 />
               ))}
             </AnimatePresence>
           </ol>
         )}
       </CardContent>
+
+      {/* ---------------------- Edit dialog ---------------------- */}
+      <Dialog open={editing !== null} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit activity</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            {/* Type chips */}
+            <div className="flex flex-wrap gap-2">
+              {types.map((t) => {
+                const Ico = iconFor(t.icon);
+                const selected = t.key === editKey;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setEditKey(t.key)}
+                    aria-pressed={selected}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-all",
+                      selected
+                        ? "border-transparent text-foreground shadow-sm ring-2 ring-offset-1 ring-offset-background"
+                        : "border-border bg-background/60 text-muted-foreground hover:text-foreground hover:bg-background"
+                    )}
+                    style={
+                      selected
+                        ? ({
+                            backgroundColor: `${t.color}1f`,
+                            ["--tw-ring-color" as string]: t.color,
+                          } as React.CSSProperties)
+                        : undefined
+                    }
+                  >
+                    <Ico className="h-4 w-4" style={{ color: t.color }} aria-hidden />
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Subject */}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-activity-subject">
+                {labelFor("subject", "Subject")}
+                <span className="ml-0.5 text-destructive">*</span>
+              </Label>
+              <Input
+                id="edit-activity-subject"
+                value={editSubject}
+                onChange={(e) => setEditSubject(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+
+            {/* Due + Status */}
+            {(showDueAt || showStatus) && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {showDueAt && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-activity-due">{labelFor("dueAt", "Due / scheduled")}</Label>
+                    <Input
+                      id="edit-activity-due"
+                      type="datetime-local"
+                      value={editDueAt}
+                      onChange={(e) => setEditDueAt(e.target.value)}
+                    />
+                  </div>
+                )}
+                {showStatus && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-activity-status">{labelFor("status", "Status")}</Label>
+                    <Select value={editStatus} onValueChange={(v) => setEditStatus(v as ActivityStatus)}>
+                      <SelectTrigger id="edit-activity-status">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PLANNED">Planned</SelectItem>
+                        <SelectItem value="COMPLETED">Completed</SelectItem>
+                        <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                        <SelectItem value="OVERDUE">Overdue</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Description */}
+            {showDescription && (
+              <div className="space-y-1.5">
+                <Label htmlFor="edit-activity-notes">{labelFor("description", "Notes")}</Label>
+                <Textarea
+                  id="edit-activity-notes"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            )}
+
+            {/* Custom fields */}
+            {customFields.length > 0 && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {customFields.map((f) => (
+                  <CustomFieldInput
+                    key={f.id}
+                    field={f}
+                    value={editCustom[f.fieldKey]}
+                    onChange={(val) =>
+                      setEditCustom((prev) => ({ ...prev, [f.fieldKey]: val }))
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditing(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="gradient" disabled={savingEdit || !editSubject.trim()}>
+                {savingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                Save changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -681,6 +922,7 @@ function TimelineItem({
   index,
   isLast,
   onMarkDone,
+  onEdit,
 }: {
   activity: ActivityRecord;
   type: ActivityType | undefined;
@@ -689,10 +931,12 @@ function TimelineItem({
   index: number;
   isLast: boolean;
   onMarkDone: () => void;
+  onEdit: () => void;
 }) {
   const Ico = iconFor(type?.icon);
   const color = type?.color ?? "var(--primary)";
   const completed = activity.status === "COMPLETED";
+  const isTemp = activity.id.startsWith("temp-");
   const dataEntries = activity.data
     ? Object.entries(activity.data).filter(
         ([, v]) => v !== null && v !== undefined && v !== ""
@@ -762,7 +1006,7 @@ function TimelineItem({
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1">
             <Badge variant={statusBadgeVariant(activity.status)}>
               {prettyStatus(activity.status)}
             </Badge>
@@ -781,6 +1025,19 @@ function TimelineItem({
                   <Check className="h-3.5 w-3.5" />
                 )}
                 Mark done
+              </Button>
+            )}
+            {!isTemp && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={onEdit}
+                aria-label="Edit activity"
+                title="Edit activity"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              >
+                <Pencil className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>

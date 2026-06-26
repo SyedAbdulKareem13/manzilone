@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
@@ -89,25 +90,81 @@ export async function POST(req: Request) {
   return NextResponse.json({ activity });
 }
 
-const patchSchema = z.object({ id: z.string().min(1), status: z.enum(STATUSES) });
+const patchSchema = z
+  .object({
+    id: z.string().min(1),
+    type: z.enum(TYPES).optional(),
+    subject: z.string().min(1).optional(),
+    description: z.string().optional().nullable(),
+    dueAt: z.string().optional().nullable(),
+    status: z.enum(STATUSES).optional(),
+    data: z.record(z.unknown()).optional().nullable(),
+  })
+  .refine(
+    (d) =>
+      d.type !== undefined ||
+      d.subject !== undefined ||
+      d.description !== undefined ||
+      d.dueAt !== undefined ||
+      d.status !== undefined ||
+      d.data !== undefined,
+    { message: "Nothing to update" }
+  );
 
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const orgId = session.user.organizationId;
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
-  if (!parsed.success) return NextResponse.json({ error: "Invalid" }, { status: 400 });
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid" }, { status: 400 });
+  const d = parsed.data;
+
   const row = await prisma.activity.findFirst({
-    where: { id: parsed.data.id, organizationId: session.user.organizationId },
-    select: { id: true },
+    where: { id: d.id, organizationId: orgId },
+    select: { id: true, leadId: true, opportunityId: true, type: true, subject: true },
   });
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
   const activity = await prisma.activity.update({
-    where: { id: parsed.data.id },
+    where: { id: d.id },
     data: {
-      status: parsed.data.status,
-      completedAt: parsed.data.status === "COMPLETED" ? new Date() : null,
+      ...(d.type !== undefined ? { type: d.type } : {}),
+      ...(d.subject !== undefined ? { subject: d.subject } : {}),
+      ...(d.description !== undefined ? { description: d.description ?? null } : {}),
+      ...(d.dueAt !== undefined ? { dueAt: d.dueAt ? new Date(d.dueAt) : null } : {}),
+      ...(d.data !== undefined
+        ? { data: d.data === null ? Prisma.JsonNull : (d.data as Prisma.InputJsonValue) }
+        : {}),
+      ...(d.status !== undefined
+        ? { status: d.status, completedAt: d.status === "COMPLETED" ? new Date() : null }
+        : {}),
     },
     include: { owner: { select: { name: true, image: true } } },
   });
+
+  // A status-only change (mark done) keeps its lightweight summary; a content
+  // edit records that the activity was updated, for a transparent trail.
+  const statusOnly =
+    d.status !== undefined &&
+    d.type === undefined &&
+    d.subject === undefined &&
+    d.description === undefined &&
+    d.dueAt === undefined &&
+    d.data === undefined;
+  const auditEntityId = row.opportunityId ?? row.leadId;
+  if (auditEntityId) {
+    await recordAudit({
+      organizationId: orgId,
+      entityType: row.opportunityId ? "OPPORTUNITY" : "LEAD",
+      entityId: auditEntityId,
+      action: "UPDATED",
+      summary: statusOnly
+        ? `Activity “${row.subject}” marked ${d.status!.toLowerCase()}`
+        : `Edited activity · ${activity.subject}`,
+      actorId: session.user.id,
+      actorName: session.user.name,
+    });
+  }
+
   return NextResponse.json({ activity });
 }

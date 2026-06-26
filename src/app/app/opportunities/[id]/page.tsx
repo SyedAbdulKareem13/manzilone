@@ -171,29 +171,6 @@ export default async function OpportunityDetailPage({
               ) : null}
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {opp.activities.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No activities yet.</p>
-              ) : (
-                <ol className="relative space-y-3 border-l pl-4">
-                  {opp.activities.slice(0, 12).map((a) => (
-                    <li key={a.id}>
-                      <span className="absolute -left-[7px] mt-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
-                      <div className="text-sm font-medium">{a.subject}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {a.type.toLowerCase()} · {formatDate(a.createdAt)}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
