@@ -14,7 +14,9 @@
  *    counter, raise a toast, then deal the next card.
  *  - Count-up live stats (fed from the real database), its own
  *    light/dark toggle + coral accent, and the animated LinkedIn credit.
- *  - Honors prefers-reduced-motion with a calm static fallback.
+ *  - Runs the full animation on every machine to match the source design 1:1
+ *    (intentionally not gated on prefers-reduced-motion). The DOM animations
+ *    start immediately; the WebGL layer attaches once three.js loads.
  *
  * Three.js is dynamically imported inside the effect so it ships only
  * to visitors who actually see v2.
