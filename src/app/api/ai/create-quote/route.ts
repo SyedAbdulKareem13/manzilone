@@ -158,7 +158,7 @@ export async function POST(req: Request) {
       scopeNote = await geminiGenerate({
         apiKey: key,
         model: await getGeminiModel(),
-        system: "You are Manzil AI inside a CRM. Write a crisp 2-3 sentence professional engagement scope. No preamble.",
+        system: "You are Manz AI inside a CRM. Write a crisp 2-3 sentence professional engagement scope. No preamble.",
         prompt: `Write the scope/approach paragraph for this engagement brief:\n"""${parsed.data.prompt}"""`,
         temperature: 0.5,
       });
@@ -188,7 +188,7 @@ export async function POST(req: Request) {
     `Engagement: ${months} month${months === 1 ? "" : "s"} · ${brief.pricingModel}`,
     `Team: ${brief.roles.map((r) => `${r.count} ${titleCase(r.role)}`).join(", ")}`,
     scopeNote ? `\nScope: ${scopeNote}` : "",
-    `\n— Drafted by Manzil AI`,
+    `\n— Drafted by Manz AI`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -200,6 +200,7 @@ export async function POST(req: Request) {
       customerId: customer.id,
       currency: "INR",
       status: "DRAFT",
+      draftedByAi: true,
       validUntil,
       notes,
       termsAndConditions: `Pricing model: ${brief.pricingModel}. Rates are indicative AI estimates; validate against rate cards before sending.`,
@@ -230,7 +231,7 @@ export async function POST(req: Request) {
     entityId: quotation.id,
     entityLabel: quotation.quotationNumber,
     action: "CREATED",
-    summary: `Drafted by Manzil AI · ${brief.roles.reduce((n, r) => n + r.count, 0)} resources · ${months} mo · grand total ${Number(quotation.grandTotal).toLocaleString("en-IN")} ${quotation.currency}`,
+    summary: `Drafted by Manz AI · ${brief.roles.reduce((n, r) => n + r.count, 0)} resources · ${months} mo · grand total ${Number(quotation.grandTotal).toLocaleString("en-IN")} ${quotation.currency}`,
     actorId: session.user.id,
     actorName: session.user.name,
   });

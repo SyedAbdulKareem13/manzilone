@@ -516,6 +516,7 @@ model Quotation {
   customer        Customer @relation(fields: [customerId], references: [id])
 
   status          QuotationStatus @default(DRAFT)
+  draftedByAi     Boolean  @default(false) // created via "Draft with AI"
   currency        String   @default("INR")
   validUntil      DateTime?
   notes           String?  @db.Text

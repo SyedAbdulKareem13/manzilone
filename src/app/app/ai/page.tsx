@@ -45,7 +45,7 @@ export default async function AiStudioPage() {
   return (
     <>
       <PageHeader
-        title="Manzil AI"
+        title="Manz AI"
         description="Your AI copilot for RFQs, quotations, customers and outreach."
         urdu="منزل اے آئی"
       />

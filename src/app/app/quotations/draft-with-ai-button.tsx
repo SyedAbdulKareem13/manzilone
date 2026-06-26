@@ -64,7 +64,7 @@ export function DraftWithAiButton() {
             Draft a quotation with AI
           </DialogTitle>
           <DialogDescription>
-            Describe the engagement in plain English. Manzil AI builds the team, line items, pricing &amp; margin — then creates the quotation.
+            Describe the engagement in plain English. Manz AI builds the team, line items, pricing &amp; margin — then creates the quotation.
           </DialogDescription>
         </DialogHeader>
 

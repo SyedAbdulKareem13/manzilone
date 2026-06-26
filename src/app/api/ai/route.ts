@@ -7,7 +7,7 @@ import { getGeminiKey, getGeminiModel } from "@/lib/app-config";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-const BRAND = `You are "Manzil AI", the built-in assistant inside Manzil One — a premium CRM & quotation platform for consulting, staffing, manpower, software-licensing and project businesses. The deal lifecycle is: Lead → Opportunity → RFQ → Quotation → Approval → Won. Quotations are built from rate cards (manpower / non-manpower / license) and a Position Engine (headcount × duration × monthly rate, with billing markup → cost/revenue/margin). Be concise, practical and professional. Use INR (₹) and Crore (Cr) where money is implied. Never invent confidential data; when unsure, say so.`;
+const BRAND = `You are "Manz AI", the built-in assistant inside Manzil One — a premium CRM & quotation platform for consulting, staffing, manpower, software-licensing and project businesses. The deal lifecycle is: Lead → Opportunity → RFQ → Quotation → Approval → Won. Quotations are built from rate cards (manpower / non-manpower / license) and a Position Engine (headcount × duration × monthly rate, with billing markup → cost/revenue/margin). Be concise, practical and professional. Use INR (₹) and Crore (Cr) where money is implied. Never invent confidential data; when unsure, say so.`;
 
 const chatSchema = z.object({
   tool: z.literal("chat"),
@@ -55,11 +55,11 @@ export async function POST(req: Request) {
   try {
     if (data.tool === "chat") {
       const convo = data.messages
-        .map((m) => `${m.role === "user" ? "User" : "Manzil AI"}: ${m.text}`)
+        .map((m) => `${m.role === "user" ? "User" : "Manz AI"}: ${m.text}`)
         .join("\n");
       const prompt = [
         data.context ? `Workspace context (live):\n${data.context}\n` : "",
-        `Conversation so far:\n${convo}\n\nReply as Manzil AI (plain text, no markdown headers, short).`,
+        `Conversation so far:\n${convo}\n\nReply as Manz AI (plain text, no markdown headers, short).`,
       ].join("\n");
       const text = await gen({ system: BRAND, prompt, temperature: 0.7 });
       return NextResponse.json({ text });

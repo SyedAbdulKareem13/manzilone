@@ -47,7 +47,7 @@ export const APPROVAL_CHAIN_DEFAULT = [
 
 export const NAV_ITEMS = [
   { href: "/app", label: "Dashboard", icon: "LayoutDashboard" },
-  { href: "/app/ai", label: "Manzil AI", icon: "WandSparkles" },
+  { href: "/app/ai", label: "Manz AI", icon: "WandSparkles" },
   { href: "/app/leads", label: "Leads", icon: "Sparkles" },
   { href: "/app/opportunities", label: "Opportunities", icon: "Target" },
   { href: "/app/pipeline", label: "Pipeline", icon: "Kanban" },

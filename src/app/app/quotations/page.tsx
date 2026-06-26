@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/app/page-header";
@@ -74,9 +74,19 @@ export default async function QuotationsPage() {
               {quotations.map((q) => (
                 <TableRow key={q.id}>
                   <TableCell>
-                    <Link href={`/app/quotations/${q.id}`} className="font-medium hover:underline">
-                      {q.quotationNumber}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/app/quotations/${q.id}`} className="font-medium hover:underline">
+                        {q.quotationNumber}
+                      </Link>
+                      {q.draftedByAi ? (
+                        <span
+                          title="Drafted with Manz AI"
+                          className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary"
+                        >
+                          <Sparkles className="h-3 w-3" /> AI
+                        </span>
+                      ) : null}
+                    </div>
                   </TableCell>
                   <TableCell>{q.customer.name}</TableCell>
                   <TableCell>
