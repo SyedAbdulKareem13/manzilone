@@ -18,7 +18,9 @@ const createSchema = z
     leadId: z.string().optional().nullable(),
     opportunityId: z.string().optional().nullable(),
   })
-  .refine((d) => d.leadId || d.opportunityId, { message: "An activity must be linked to a lead or opportunity" });
+  .refine((d) => !!d.leadId !== !!d.opportunityId, {
+    message: "An activity must be linked to exactly one of a lead or an opportunity",
+  });
 
 export async function GET(req: Request) {
   const session = await auth();

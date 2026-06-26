@@ -308,10 +308,11 @@ function FieldsPanel() {
     });
   }, []);
 
-  /* ---- PATCH a single field (optimistic) ---- */
+  /* ---- PATCH a single field (optimistic) ----
+   * On failure we re-fetch the module rather than restoring a captured
+   * snapshot: a stale snapshot would clobber other rows edited concurrently. */
   const patchField = useCallback(
     async (id: string, patch: Partial<Pick<FieldConfig, "label" | "active" | "required" | "helpText" | "options">>) => {
-      const before = fields;
       setFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
       setPending(id, true);
       try {
@@ -324,20 +325,19 @@ function FieldsPanel() {
         const data: { field: FieldConfig } = await res.json();
         setFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...data.field } : f)));
       } catch {
-        setFields(before);
         toast.error("Update failed — reverted");
+        void load(module);
       } finally {
         setPending(id, false);
       }
     },
-    [fields, setPending]
+    [setPending, load, module]
   );
 
   /* ---- Reorder (optimistic) ---- */
   const reorder = useCallback(
     async (from: number, to: number) => {
       if (to < 0 || to >= fields.length || from === to) return;
-      const before = fields;
       const next = [...fields];
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
@@ -351,15 +351,16 @@ function FieldsPanel() {
         });
         if (!res.ok) throw new Error("reorder failed");
       } catch {
-        setFields(before);
         toast.error("Reorder failed — reverted");
+        void load(module);
       }
     },
-    [fields, module]
+    [fields, module, load]
   );
 
   /* ---- Add custom field ---- */
   const addField = useCallback(async () => {
+    if (adding) return;
     const label = newLabel.trim();
     if (!label) {
       toast.error("Give the field a label");
@@ -385,12 +386,11 @@ function FieldsPanel() {
     } finally {
       setAdding(false);
     }
-  }, [newLabel, newType, module, moduleLabel]);
+  }, [adding, newLabel, newType, module, moduleLabel]);
 
   /* ---- Delete custom field (optimistic) ---- */
   const deleteField = useCallback(
     async (id: string) => {
-      const before = fields;
       const target = fields.find((f) => f.id === id);
       setFields((prev) => prev.filter((f) => f.id !== id));
       try {
@@ -398,11 +398,11 @@ function FieldsPanel() {
         if (!res.ok) throw new Error("delete failed");
         toast.success(`Removed “${target?.label ?? "field"}”`);
       } catch {
-        setFields(before);
         toast.error("Delete failed — reverted");
+        void load(module);
       }
     },
-    [fields]
+    [fields, load, module]
   );
 
   return (
@@ -455,7 +455,7 @@ function FieldsPanel() {
                 placeholder={`e.g. “Procurement contact”`}
                 onChange={(e) => setNewLabel(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                  if (e.key === "Enter" && !adding) {
                     e.preventDefault();
                     void addField();
                   }
@@ -494,9 +494,17 @@ function FieldsPanel() {
               Add field
             </Button>
           </div>
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Sparkles className="h-3 w-3" />
-            Custom fields are appended to the {moduleLabel} form and can be removed anytime.
+          <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+            <Sparkles className="mt-0.5 h-3 w-3 shrink-0" />
+            {module === "ACTIVITY" ? (
+              <span>Custom fields appear on the {moduleLabel} form and their values are saved. Remove anytime.</span>
+            ) : (
+              <span>
+                Showing, hiding, relabelling, reordering and requiring the core fields above is fully live for{" "}
+                {moduleLabel}. Capturing values for <em>custom</em> fields on the {moduleLabel} form is rolling out —
+                today it’s live for Activities.
+              </span>
+            )}
           </p>
         </div>
 
@@ -701,34 +709,29 @@ function ActivityTypesPanel() {
     });
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await fetch("/api/admin/activity-types");
-        if (!res.ok) throw new Error("load failed");
-        const data: { types: ActivityType[] } = await res.json();
-        if (!cancelled) {
-          setTypes([...data.types].sort((a, b) => a.position - b.position));
-        }
-      } catch {
-        if (!cancelled) {
-          toast.error("Could not load activity types");
-          setTypes([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const loadTypes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/activity-types");
+      if (!res.ok) throw new Error("load failed");
+      const data: { types: ActivityType[] } = await res.json();
+      setTypes([...data.types].sort((a, b) => a.position - b.position));
+    } catch {
+      toast.error("Could not load activity types");
+      setTypes([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    void loadTypes();
+  }, [loadTypes]);
+
+  /* On failure we re-fetch rather than restoring a captured snapshot, which
+   * would clobber other types edited concurrently. */
   const patchType = useCallback(
     async (id: string, patch: Partial<Pick<ActivityType, "label" | "icon" | "color" | "active">>) => {
-      const before = types;
       setTypes((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
       setPending(id, true);
       try {
@@ -741,19 +744,18 @@ function ActivityTypesPanel() {
         const data: { type: ActivityType } = await res.json();
         setTypes((prev) => prev.map((t) => (t.id === id ? { ...t, ...data.type } : t)));
       } catch {
-        setTypes(before);
         toast.error("Update failed — reverted");
+        void loadTypes();
       } finally {
         setPending(id, false);
       }
     },
-    [types, setPending]
+    [setPending, loadTypes]
   );
 
   const reorder = useCallback(
     async (from: number, to: number) => {
       if (to < 0 || to >= types.length || from === to) return;
-      const before = types;
       const next = [...types];
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
@@ -767,11 +769,11 @@ function ActivityTypesPanel() {
         });
         if (!res.ok) throw new Error("reorder failed");
       } catch {
-        setTypes(before);
         toast.error("Reorder failed — reverted");
+        void loadTypes();
       }
     },
-    [types]
+    [types, loadTypes]
   );
 
   return (

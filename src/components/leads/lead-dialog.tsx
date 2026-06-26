@@ -124,6 +124,33 @@ export function LeadDialog({
     if (industry) payload.industry = industry;
     if (isEdit) payload.status = status;
 
+    // Enforce configured `required`. The Select-rendered fields (source / industry /
+    // status) have no native HTML5 validation, so we check them here in JS along with
+    // every other active required field.
+    const valueFor = (key: string): string => {
+      if (key === "source") return source;
+      if (key === "industry") return industry;
+      if (key === "status") return status;
+      const v = payload[key];
+      return typeof v === "string" ? v.trim() : v == null ? "" : String(v);
+    };
+    const missing = fields.find(
+      (f) =>
+        f.active &&
+        f.required &&
+        PERSISTED_KEYS.has(f.fieldKey) &&
+        !f.isCustom &&
+        !(f.fieldKey === "status" && !isEdit) &&
+        !valueFor(f.fieldKey)
+    );
+    if (missing) {
+      toast.error(`${missing.label} is required`);
+      return;
+    }
+
+    // An empty optional number would coerce to 0 server-side — drop it instead.
+    if (payload.expectedRevenue === "") delete payload.expectedRevenue;
+
     setLoading(true);
     try {
       const res = await fetch(isEdit ? `/api/leads/${lead!.id}` : "/api/leads", {
