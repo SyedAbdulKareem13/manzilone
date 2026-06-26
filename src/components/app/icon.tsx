@@ -18,6 +18,7 @@ import {
   Rocket,
   History,
   Circle,
+  WandSparkles,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,7 @@ const ICONS: Record<string, LucideIcon> = {
   Rocket,
   History,
   Circle,
+  WandSparkles,
 };
 
 export function Icon({ name, className }: { name: string; className?: string }) {
