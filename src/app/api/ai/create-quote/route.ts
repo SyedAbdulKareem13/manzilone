@@ -93,6 +93,78 @@ function roleMonthlyRate(role: string): number {
   return 280000;
 }
 
+const ROLE_ALIASES: Record<string, string> = {
+  pm: "project manager",
+  ba: "business analyst",
+  qa: "quality assurance",
+  dev: "developer",
+  sa: "solution architect",
+  po: "product owner",
+};
+
+function normRole(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9/ ]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+/** Normalize + expand abbreviations + singularize tokens for matching. */
+function canonRole(s: string): string {
+  return normRole(s)
+    .split(" ")
+    .map((t) => ROLE_ALIASES[t] ?? t)
+    .join(" ")
+    .split(" ")
+    .map((t) => (t.length > 3 && t.endsWith("s") ? t.slice(0, -1) : t))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+type RateCard = { designation: string; monthlyRate: unknown };
+
+// Common role tokens that don't distinguish a role on their own.
+const GENERIC_TOKENS = new Set([
+  "engineer", "developer", "consultant", "manager", "analyst", "lead",
+  "specialist", "officer", "executive", "senior", "junior", "sr", "jr",
+  "associate", "expert", "architect", "the", "of", "and",
+]);
+
+/** Resolve a role's monthly cost: closest manpower rate-card designation, else default. */
+function resolveMonthlyRate(
+  role: string,
+  cards: RateCard[]
+): { rate: number; source: "card" | "default"; matched?: string } {
+  const r = canonRole(role);
+  const rTokens = new Set(r.split(" ").filter(Boolean));
+  let best: RateCard | null = null;
+  let bestScore = 0;
+  for (const c of cards) {
+    const d = canonRole(c.designation);
+    let score = 0;
+    if (d === r) score = 100;
+    else if (d && (r.includes(d) || d.includes(r))) score = 60 + Math.min(d.length, r.length);
+    else {
+      // Token overlap — but require a DISTINGUISHING (non-generic) shared token,
+      // so "AI Engineer" doesn't match "QA Engineer" on "engineer" alone.
+      let specific = 0;
+      let generic = 0;
+      for (const t of d.split(" ")) {
+        if (t && rTokens.has(t)) (GENERIC_TOKENS.has(t) ? generic++ : specific++);
+      }
+      if (specific) score = 30 + specific * 16 + generic * 4;
+      else if (generic >= 2) score = 22; // e.g. "senior developer" ↔ "developer senior"
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      best = c;
+    }
+  }
+  if (best && bestScore >= 20) {
+    const n = Number(best.monthlyRate);
+    if (Number.isFinite(n) && n > 0) return { rate: n, source: "card", matched: best.designation };
+  }
+  return { rate: roleMonthlyRate(role), source: "default" };
+}
+
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -113,10 +185,21 @@ export async function POST(req: Request) {
     );
   }
 
-  // Build positions + line items.
+  // Build positions + line items. Pull real monthly rates from the org's
+  // manpower rate cards (closest designation match); fall back to defaults.
   const months = brief.durationMonths;
-  const positions = brief.roles.map((r) => {
-    const monthlyRate = roleMonthlyRate(r.role);
+  const cards = await prisma.manpowerRateCard.findMany({
+    where: { organizationId: orgId },
+    select: { designation: true, monthlyRate: true },
+  });
+  const rated = brief.roles.map((r) => {
+    const res = resolveMonthlyRate(r.role, cards);
+    return { count: r.count, role: r.role, rate: res.rate, source: res.source };
+  });
+  const usedCards = rated.some((r) => r.source === "card");
+
+  const positions = rated.map((r) => {
+    const monthlyRate = r.rate;
     const monthlyBilling = Math.round(monthlyRate * (1 + MARKUP_PCT / 100));
     const cost = monthlyRate * r.count * months;
     const revenue = monthlyBilling * r.count * months;
@@ -135,12 +218,12 @@ export async function POST(req: Request) {
     };
   });
 
-  const items = brief.roles.map((r) => ({
+  const items = rated.map((r) => ({
     itemType: "MANPOWER" as const,
     description: `${r.count} × ${titleCase(r.role)} · ${months} mo`,
     quantity: r.count * months, // man-months
     uom: "man-month",
-    unitCost: roleMonthlyRate(r.role),
+    unitCost: r.rate,
     markupPct: MARKUP_PCT,
     discountPct: 0,
     taxPct: TAX_PCT,
@@ -187,6 +270,7 @@ export async function POST(req: Request) {
     brief.title,
     `Engagement: ${months} month${months === 1 ? "" : "s"} · ${brief.pricingModel}`,
     `Team: ${brief.roles.map((r) => `${r.count} ${titleCase(r.role)}`).join(", ")}`,
+    `Rates: ${usedCards ? "matched to your manpower rate cards" : "indicative defaults"}`,
     scopeNote ? `\nScope: ${scopeNote}` : "",
     `\n— Drafted by Manz AI`,
   ]
@@ -203,7 +287,7 @@ export async function POST(req: Request) {
       draftedByAi: true,
       validUntil,
       notes,
-      termsAndConditions: `Pricing model: ${brief.pricingModel}. Rates are indicative AI estimates; validate against rate cards before sending.`,
+      termsAndConditions: `Pricing model: ${brief.pricingModel}. ${usedCards ? "Manpower rates sourced from your rate cards where a designation matched; any unmatched roles use indicative estimates." : "Rates are indicative AI estimates; validate against your rate cards before sending."}`,
       baseCost: totals.baseCost,
       markupAmount: totals.markupAmount,
       discountAmount: totals.discountAmount,

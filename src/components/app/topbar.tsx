@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Search, LogOut, User as UserIcon, Settings } from "lucide-react";
+import { Search, LogOut, User as UserIcon, Settings, WandSparkles } from "lucide-react";
 import { Notifications } from "@/components/app/notifications";
 import { WhatsNew } from "@/components/app/whats-new";
 import { ThemeMenu } from "@/components/theme-menu";
@@ -57,6 +58,21 @@ export function Topbar({
       </button>
 
       <div className="ml-auto flex items-center gap-2">
+        <Link
+          href="/app/ai"
+          aria-label="Manz AI"
+          title="Manz AI"
+          className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-xl border border-primary/30 bg-primary/5 px-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+        >
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            style={{ background: "linear-gradient(120deg, hsl(var(--chart-1)/.18), hsl(var(--chart-5)/.18))" }}
+          />
+          <WandSparkles className="h-4 w-4" />
+          <span className="hidden sm:inline">Manz AI</span>
+        </Link>
+
         <ThemeMenu />
 
         <WhatsNew />
