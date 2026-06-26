@@ -25,6 +25,7 @@
 import * as React from "react";
 import { useTheme } from "next-themes";
 import type * as THREE from "three";
+import { LogoMark } from "@/components/brand/logo";
 
 type ThreeNS = typeof THREE;
 
@@ -808,6 +809,12 @@ const HERO_CSS = `
 }
 .mzh-root{height:100vh;}
 @supports (height:100dvh){.mzh-root{height:100dvh;}}
+/* These two class-selector rules out-specify next-themes' injected universal
+   transition-none (0,1,0 beats 0,0,0) so the hero background fade and the
+   toggle knob slide still animate on theme change, while every other element
+   stays flash-free under disableTransitionOnChange. */
+.mzh-root{transition:background .4s ease !important;}
+.mzh-knob{transition:transform .32s cubic-bezier(.34,1.56,.64,1) !important;}
 .mzh-link:focus-visible,.mzh-signin:focus-visible,.mzh-primary:focus-visible,.mzh-ghost:focus-visible,.mzh-nav-cta:focus-visible,.mzh-credit:focus-visible,.mzh-toggle:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:10px}
 .mzh-link{transition:color .2s}
 .mzh-link:hover{color:var(--ink)}
@@ -954,11 +961,8 @@ export function HeroV2({
       {/* Nav */}
       <nav data-rise="0" style={{ position: "relative", zIndex: 30, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px clamp(24px,4vw,52px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
-          <div style={{ width: "36px", height: "36px", borderRadius: "11px", background: "linear-gradient(135deg, var(--primary), var(--primary-2))", display: "grid", placeItems: "center", boxShadow: "0 8px 18px -7px var(--glow), inset 0 0 0 1px rgba(255,255,255,.28)" }}>
-            <div style={{ width: "16px", height: "16px", border: "2.6px solid #fff", borderRadius: "50%", position: "relative" }}>
-              <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", width: "4.5px", height: "4.5px", background: "#fff", borderRadius: "50%" }} />
-            </div>
-          </div>
+          {/* Brand Najm-star mark — same as the rest of the app */}
+          <LogoMark className="h-9 w-9" />
           <div style={{ display: "flex", alignItems: "baseline", gap: "9px" }}>
             <span style={{ font: "700 17px/1 'DM Sans'", letterSpacing: "-.01em", color: "var(--ink)" }}>Manzil One</span>
             <span dir="rtl" style={{ font: "500 17px/1 'Noto Nastaliq Urdu', serif", color: "var(--primary)" }}>منزل ون</span>
@@ -972,7 +976,7 @@ export function HeroV2({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div role="group" aria-label="Theme" style={{ position: "relative", display: "flex", alignItems: "center", width: "70px", height: "34px", padding: "3px", borderRadius: "999px", border: "1px solid var(--line-2)", background: "var(--bg-2)" }}>
-            <div style={knobStyle} />
+            <div className="mzh-knob" style={knobStyle} />
             <button onClick={() => setGlobalTheme("platinum")} aria-label="Light" className="mzh-toggle" style={{ position: "relative", zIndex: 1, flex: 1, height: "100%", border: 0, background: "transparent", display: "grid", placeItems: "center", color: "var(--ink-2)", cursor: "pointer" }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
             </button>

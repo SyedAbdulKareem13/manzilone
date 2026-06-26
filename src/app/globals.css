@@ -177,8 +177,9 @@
   }
 
   /* Graphite — Platinum's coral accent on a premium near-black surface.
-     Carries the `.dark` class (see ThemeProvider value map) so Tailwind
-     `dark:` utilities resolve. This is the dark theme the v2 hero toggles to. */
+     Tailwind's dark: utilities resolve under .graphite via the darkMode
+     "variant" in tailwind.config.ts. This is the dark theme the v2 hero
+     toggles to (light -> platinum, dark -> graphite). */
   .graphite {
     --background: 228 18% 7%;
     --foreground: 40 20% 96%;
