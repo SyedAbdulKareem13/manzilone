@@ -779,7 +779,9 @@ export function HeroV2({
   // Drive the GLOBAL theme so dark mode covers the whole page (hero + the
   // sections below) and persists to /login and /signup, not just the hero.
   const { resolvedTheme, setTheme: setGlobalTheme } = useTheme();
-  const theme: Theme = resolvedTheme === "dark" ? "dark" : "light";
+  // The hero's dark toggle uses GRAPHITE (Platinum-coloured dark); Midnight
+  // ("dark") is also treated as the hero's dark palette if it happens to be set.
+  const theme: Theme = resolvedTheme === "graphite" || resolvedTheme === "dark" ? "dark" : "light";
   const [deal, setDeal] = React.useState<Deal>(DEALS[0]);
   const [counters, setCounters] = React.useState<Counters>({ p: 0, o: 0, w: 0 });
   const [toast, setToast] = React.useState<Toast>(null);
@@ -900,10 +902,10 @@ export function HeroV2({
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div role="group" aria-label="Theme" style={{ position: "relative", display: "flex", alignItems: "center", width: "70px", height: "34px", padding: "3px", borderRadius: "999px", border: "1px solid var(--line-2)", background: "var(--bg-2)" }}>
             <div style={knobStyle} />
-            <button onClick={() => setGlobalTheme("light")} aria-label="Light" className="mzh-toggle" style={{ position: "relative", zIndex: 1, flex: 1, height: "100%", border: 0, background: "transparent", display: "grid", placeItems: "center", color: "var(--ink-2)", cursor: "pointer" }}>
+            <button onClick={() => setGlobalTheme("platinum")} aria-label="Light" className="mzh-toggle" style={{ position: "relative", zIndex: 1, flex: 1, height: "100%", border: 0, background: "transparent", display: "grid", placeItems: "center", color: "var(--ink-2)", cursor: "pointer" }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
             </button>
-            <button onClick={() => setGlobalTheme("dark")} aria-label="Dark" className="mzh-toggle" style={{ position: "relative", zIndex: 1, flex: 1, height: "100%", border: 0, background: "transparent", display: "grid", placeItems: "center", color: "var(--ink-2)", cursor: "pointer" }}>
+            <button onClick={() => setGlobalTheme("graphite")} aria-label="Dark" className="mzh-toggle" style={{ position: "relative", zIndex: 1, flex: 1, height: "100%", border: 0, background: "transparent", display: "grid", placeItems: "center", color: "var(--ink-2)", cursor: "pointer" }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
             </button>
           </div>

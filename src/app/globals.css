@@ -176,31 +176,33 @@
     --brand-gradient: linear-gradient(180deg, #8b5cf6, #6d28d9);
   }
 
-  /* Graphite — warm dark variant (DM Sans, coral accent) */
+  /* Graphite — Platinum's coral accent on a premium near-black surface.
+     Carries the `.dark` class (see ThemeProvider value map) so Tailwind
+     `dark:` utilities resolve. This is the dark theme the v2 hero toggles to. */
   .graphite {
-    --background: 228 16% 9%;
+    --background: 228 18% 7%;
     --foreground: 40 20% 96%;
-    --card: 228 14% 12%;
+    --card: 228 16% 10%;
     --card-foreground: 40 20% 96%;
-    --popover: 228 14% 12%;
+    --popover: 228 16% 10%;
     --popover-foreground: 40 20% 96%;
-    --primary: 0 100% 70%;
+    --primary: 0 100% 68%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 228 12% 16%;
+    --secondary: 228 12% 15%;
     --secondary-foreground: 40 20% 96%;
-    --muted: 228 12% 16%;
+    --muted: 228 12% 15%;
     --muted-foreground: 220 10% 62%;
-    --accent: 228 14% 16%;
+    --accent: 228 14% 15%;
     --accent-foreground: 0 100% 78%;
     --destructive: 0 70% 55%;
     --destructive-foreground: 0 0% 100%;
     --success: 162 70% 45%;
     --warning: 38 92% 58%;
     --info: 199 89% 56%;
-    --border: 228 12% 18%;
-    --input: 228 12% 18%;
-    --ring: 0 100% 70%;
-    --chart-1: 0 100% 70%;
+    --border: 228 12% 17%;
+    --input: 228 12% 17%;
+    --ring: 0 100% 68%;
+    --chart-1: 0 100% 68%;
     --chart-2: 14 100% 72%;
     --chart-3: 162 70% 55%;
     --chart-4: 38 95% 65%;
