@@ -3,7 +3,7 @@
  * "What's new" dialog. Plain data (not user data), edited per release.
  */
 
-export const CURRENT_VERSION = "0.5.0";
+export const CURRENT_VERSION = "0.8.0";
 
 export type ChangeType = "new" | "improved" | "fixed";
 
@@ -16,6 +16,33 @@ export type Release = {
 };
 
 export const RELEASES: Release[] = [
+  {
+    version: "0.8.0",
+    date: "2026-06-26",
+    title: "Manz AI & editable quotations",
+    summary: "A conversational AI workspace, one-step AI quotation drafting, and fully editable quotes with a transparent audit trail.",
+    items: [
+      { type: "new", text: "Manz AI workspace — a conversational copilot with capability cards and a live “what Manz AI noticed” pipeline insights feed, plus a one-click Manz AI launcher in the top bar." },
+      { type: "new", text: "Draft with AI on Quotations — turn a plain-English brief (“3-month Salesforce CRM for a healthcare provider; 1 PM, 2 Developers, 1 QA; Fixed Price”) into a complete quotation: team, line items, pricing and margin." },
+      { type: "improved", text: "AI drafts price each role from your manpower rate cards via smart designation matching, with indicative fallbacks where no card matches." },
+      { type: "new", text: "AI-drafted quotations are flagged with an “AI” mark in the Quotations list." },
+      { type: "new", text: "Edit quotations — change line items, pricing and terms with live totals; every change is captured in a transparent, field-level audit trail." },
+      { type: "new", text: "RFQ parser, company lookup and email writer built into Manz AI." },
+    ],
+  },
+  {
+    version: "0.6.0",
+    date: "2026-06-26",
+    title: "Immersive landing & theming",
+    summary: "A switchable WebGL hero, full-page theming, a polished Graphite dark mode and a dedicated deployment.",
+    items: [
+      { type: "new", text: "v2 immersive hero for the public site — a WebGL “guide every deal to its destination” scene with a drag-to-win deal card; switch v1 ⇄ v2 from Admin → Landing (Supabase-backed)." },
+      { type: "improved", text: "Full-page theme switching with a smooth fade; the hero toggle moves Platinum ⇄ Graphite and carries across the app and login." },
+      { type: "improved", text: "Graphite dark theme refined (Platinum coral on near-black) and now renders every component correctly." },
+      { type: "improved", text: "Consistent theme switcher (all accents + dark) across the top bar, landing and auth pages; brand Najm-star favicon." },
+      { type: "new", text: "Dedicated manzilone.vercel.app deployment with its own GitHub repo." },
+    ],
+  },
   {
     version: "0.5.0",
     date: "2026-06-25",
@@ -91,23 +118,23 @@ export type RoadmapWeek = {
 export const ROADMAP: RoadmapWeek[] = [
   {
     week: "Week 1",
-    range: "25 Jun – 1 Jul 2026",
+    range: "26 Jun – 2 Jul 2026",
     items: [
-      { title: "Google sign-in", detail: "Enable Google OAuth for login and sign-up.", status: "in_progress" },
-      { title: "Real OTP delivery", detail: "Send OTP via an email / SMS provider (currently a mock in dev).", status: "in_progress" },
-      { title: "Document management", detail: "Upload, preview & version SOWs, contracts and quotations to storage.", status: "planned" },
-      { title: "Global search", detail: "Search across leads, opportunities, RFQs, quotations and customers.", status: "planned" },
+      { title: "Activities on Opportunities", detail: "Log calls, meetings, emails, tasks and notes against any opportunity on a single timeline.", status: "in_progress" },
+      { title: "Activities on Leads", detail: "The same activity timeline on every lead, carried over on lead → opportunity conversion.", status: "in_progress" },
+      { title: "Task creation with confirmation", detail: "Create follow-up tasks with a confirm step, owner, due date and priority.", status: "planned" },
+      { title: "Activity types", detail: "Call, Meeting, Email, Task and Note — each with type-specific fields and status.", status: "planned" },
     ],
   },
   {
     week: "Week 2",
-    range: "2 Jul – 9 Jul 2026",
+    range: "3 Jul – 9 Jul 2026",
     items: [
-      { title: "Real-time notifications", detail: "Live push for stage changes, approvals and tasks due.", status: "planned" },
-      { title: "Activity logging", detail: "Log calls, meetings and tasks with reminders and due dates.", status: "planned" },
-      { title: "Reports export & filters", detail: "CSV / PDF export and date-range filters on every report.", status: "planned" },
-      { title: "Quotation email-out", detail: "Send the branded quotation PDF to the customer from the app.", status: "planned" },
-      { title: "AWS deployment prep", detail: "Dockerise the app and set up Jenkins CI/CD for AWS.", status: "planned" },
+      { title: "AI activity creation", detail: "Manz AI logs the right activity or task from a sentence — “call Priya at Crescent Capital Mon 3pm”.", status: "planned" },
+      { title: "Email · Call · Meeting", detail: "Compose & send the AI-drafted email, log calls, and schedule meetings with reminders.", status: "planned" },
+      { title: "Reminders & due-date nudges", detail: "Notifications for upcoming tasks, calls and meetings.", status: "planned" },
+      { title: "Live Manz AI", detail: "Swap in a quota-enabled Gemini key (Supabase config) to turn on live chat, RFQ parsing and drafting.", status: "planned" },
+      { title: "Merge Manz AI to production", detail: "Promote the AI workspace from dev to manzilone.vercel.app.", status: "planned" },
     ],
   },
 ];

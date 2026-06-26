@@ -11,6 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ApprovalPanel } from "@/components/quotation/approval-panel";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
+import { EditQuotationDialog } from "./edit-quotation-dialog";
+
+const EDITABLE_STATUSES = ["DRAFT", "PENDING_APPROVAL", "REJECTED"];
 
 export const dynamic = "force-dynamic";
 
@@ -37,11 +40,37 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
         <Link href="/app/quotations" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> All quotations
         </Link>
-        <Link href={`/app/quotations/${q.id}/print`} target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" size="sm">
-            <FileDown className="h-4 w-4" /> Export PDF
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <EditQuotationDialog
+            editable={EDITABLE_STATUSES.includes(q.status)}
+            quotation={{
+              id: q.id,
+              quotationNumber: q.quotationNumber,
+              notes: q.notes,
+              termsAndConditions: q.termsAndConditions,
+              validUntil: q.validUntil ? q.validUntil.toISOString() : null,
+              items: q.items.map((it) => ({
+                itemType: it.itemType as "MANPOWER" | "NON_MANPOWER" | "LICENSE",
+                description: it.description,
+                quantity: Number(it.quantity),
+                uom: it.uom,
+                unitCost: Number(it.unitCost),
+                markupPct: Number(it.markupPct),
+                discountPct: Number(it.discountPct),
+                taxPct: Number(it.taxPct),
+                manpowerGrade: it.manpowerGrade,
+                manpowerExperience: it.manpowerExperience,
+                licenseProduct: it.licenseProduct,
+                licenseDuration: it.licenseDuration,
+              })),
+            }}
+          />
+          <Link href={`/app/quotations/${q.id}/print`} target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm">
+              <FileDown className="h-4 w-4" /> Export PDF
+            </Button>
+          </Link>
+        </div>
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
