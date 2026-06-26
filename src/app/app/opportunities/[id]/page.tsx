@@ -11,6 +11,7 @@ import { OPP_STAGES } from "@/lib/constants";
 import { OpportunityStage } from "@/components/opportunities/opportunity-stage";
 import { OpportunityEditButton } from "@/components/opportunities/opportunity-edit-button";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
+import { ActivityPanel } from "@/components/activity/activity-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -148,6 +149,8 @@ export default async function OpportunityDetailPage({
               )}
             </CardContent>
           </Card>
+
+          <ActivityPanel entity="opportunity" entityId={opp.id} />
 
           <RecordAuditTrail organizationId={session.user.organizationId} entityType="OPPORTUNITY" entityId={opp.id} />
         </div>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ConvertLeadButton } from "./convert-button";
 import { LeadEditButton } from "@/components/leads/lead-edit-button";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
+import { ActivityPanel } from "@/components/activity/activity-panel";
 import { formatCompactCurrency, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -87,6 +88,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               </p>
             </CardContent>
           </Card>
+
+          <ActivityPanel entity="lead" entityId={lead.id} />
 
           <RecordAuditTrail organizationId={session.user.organizationId} entityType="LEAD" entityId={lead.id} />
         </div>
