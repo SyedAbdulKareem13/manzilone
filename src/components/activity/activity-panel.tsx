@@ -46,6 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
   Card,
   CardHeader,
@@ -668,12 +669,7 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
                     <Label htmlFor="activity-due">
                       {labelFor("dueAt", "Due / scheduled")}
                     </Label>
-                    <Input
-                      id="activity-due"
-                      type="datetime-local"
-                      value={dueAt}
-                      onChange={(e) => setDueAt(e.target.value)}
-                    />
+                    <DateTimePicker value={dueAt} onChange={setDueAt} placeholder="Pick date & time" />
                   </div>
                 )}
                 {showStatus && (
@@ -838,12 +834,7 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
                 {showDueAt && (
                   <div className="space-y-1.5">
                     <Label htmlFor="edit-activity-due">{labelFor("dueAt", "Due / scheduled")}</Label>
-                    <Input
-                      id="edit-activity-due"
-                      type="datetime-local"
-                      value={editDueAt}
-                      onChange={(e) => setEditDueAt(e.target.value)}
-                    />
+                    <DateTimePicker value={editDueAt} onChange={setEditDueAt} placeholder="Pick date & time" />
                   </div>
                 )}
                 {showStatus && (
