@@ -73,6 +73,14 @@ export function DateTimePicker({
     return new Date(base.getFullYear(), base.getMonth(), 1);
   });
 
+  // Re-center the calendar on the value's month if it changes after mount
+  // (e.g. the edit dialog populates a due date in a different month).
+  React.useEffect(() => {
+    if (!datePart) return;
+    const d = new Date(datePart + "T00:00:00");
+    if (!Number.isNaN(d.getTime())) setView(new Date(d.getFullYear(), d.getMonth(), 1));
+  }, [datePart]);
+
   function emit(d: string, t: string) {
     const next = d ? `${d}T${t || "09:00"}` : "";
     if (controlledValue === undefined) setInternal(next);
@@ -188,7 +196,10 @@ export function DateTimePicker({
             <input
               type="time"
               value={timePart}
-              onChange={(e) => emit(datePart || todayISO, e.target.value)}
+              onChange={(e) => {
+                // Ignore an emptied field so clearing doesn't snap to the 09:00 default.
+                if (e.target.value) emit(datePart || todayISO, e.target.value);
+              }}
               aria-label="Custom time"
               className="ml-auto h-7 rounded-lg border border-input bg-background/60 px-2 text-xs shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring [color-scheme:light] dark:[color-scheme:dark]"
             />
