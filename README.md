@@ -1,5 +1,16 @@
 # Manzil One — Premium Modern CRM & Quotation Management Platform
 
+<p>
+  <a href="https://manzilone.vercel.app"><img src="https://img.shields.io/badge/Live%20Demo-22d3ee?style=for-the-badge&logo=vercel&logoColor=0d1117" alt="Live demo" /></a>
+</p>
+
+![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=flat-square&logo=nextdotjs)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-1c1c1c?style=flat-square&logo=supabase&logoColor=3ECF8E)
+![Auth.js](https://img.shields.io/badge/Auth.js-0d1117?style=flat-square&logo=auth0&logoColor=EB5424)
+
 A production-ready, fully responsive SaaS CRM built for **consulting, staffing, manpower services, software licensing and project-based businesses** — designed to feel like a $100M-grade product.
 
 > Next.js 15 (App Router) · TypeScript · Tailwind CSS · shadcn-style UI · Framer Motion · React Hook Form · Zod · NextAuth (Google + Credentials + OTP) · Prisma · PostgreSQL (Supabase-ready) · Recharts · Sonner
